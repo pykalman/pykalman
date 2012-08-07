@@ -1,9 +1,3 @@
-.. _kalman:
-
-============
-User's Guide
-============
-
 .. currentmodule:: kalman
 
 The Kalman Filter is a unsupervised algorithm for tracking a single object in a
@@ -46,8 +40,8 @@ value for any of the model parameters from which the former can be derived::
 
 The traditional Kalman Filter assumes that model parameters are known
 beforehand.  The :class:`KalmanFilter` class however can learn parameters using
-:func:`KalmanFilter.fit` (fitting is optional).  Then the hidden sequence of
-states can be predicted using :func:`KalmanFilter.predict`::
+:func:`KalmanFilter.em` (fitting is optional).  Then the hidden sequence of
+states can be predicted using :func:`KalmanFilter.smooth`::
 
     >>> measurements = [[1,0], [0,0], [0,1]]
     >>> kf.em(measurements).smooth([[2,0], [2,1], [2,2]])
@@ -95,23 +89,23 @@ is.
        if t == 0:
           states[t] = norm.rvs(initial_state_mean, np.sqrt(initial_state_covariance))
           measurements[t] = (
-              np.dot(observation_matrices, states[t])
-              + observation_offsets
+              np.dot(observation_matrices[t], states[t])
+              + observation_offsets[t]
               + norm.rvs(0, np.sqrt(observation_covariance))
           )
       states[t+1] = (
-          np.dot(transition_matrices, states[t])
-          + transition_offsets
+          np.dot(transition_matrices[t], states[t])
+          + transition_offsets[t]
           + norm.rvs(0, np.sqrt(transition_covariance))
       )
       measurements[t+1] = (
-          np.dot(observation_matrices, states[t+1])
-          + observation_offsets
+          np.dot(observation_matrices[t+1], states[t+1])
+          + observation_offsets[t+1]
           + norm.rvs(np.sqrt(observation_covariance))
       )
 
 The selection of these variables is not an easy one, and, as shall be explained
-in the section on fitting, should not be left to :func:`KalmanFilter.fit`
+in the section on fitting, should not be left to :func:`KalmanFilter.em`
 alone. If one ignores the random noise, the parameters dictate that *the next
 state and the current measurement should be an affine function of the current
 state*. The additive noise term is then simply a way to deal with unaccounted
@@ -145,7 +139,7 @@ prediction: the Kalman Filter and the Kalman Smoother. While the former can be
 updated recursively (making it ideal for online state estimation), the latter
 can only be done in batch. These two algorithms are accessible via
 :func:`KalmanFilter.filter`, :func:`KalmanFilter.filter_update`, and
-:func:`KalmanFilter.predict`.
+:func:`KalmanFilter.smooth`.
 
 Functionally, Kalman Smoother should always be preferred. Unlike the Kalman
 Filter, the Smoother is able to incorporate "future" measurements as well as
@@ -154,8 +148,8 @@ the number of time steps and `d` is the dimensionality of the state space. The
 only reason to prefer the Kalman Filter over the Smoother is in its ability to
 incorporate new measurements in an online manner::
 
-    means, covariances = kf.filter(measurements)
-    next_mean, next_covariance = kf.filter_update(
+    >>> means, covariances = kf.filter(measurements)
+    >>> next_mean, next_covariance = kf.filter_update(
         means[-1], covariances[-1], new_measurement
     )
 
@@ -202,7 +196,7 @@ It is customary optimize only the :attr:`transition_covariance`,
 unspecified. In order to avoid overfitting, it is also possible to specify the
 number of iterations of the EM algorithm to run during fitting::
 
-    >>> kf.fit(X, n_iter=5)
+    >>> kf.em(X, n_iter=5)
 
 Each iteration of the EM algorithm requires running the Kalman Smoother anew,
 so its computational complexity is :math:`O(Tnd^3)` where :math:`T` is the
@@ -226,7 +220,7 @@ measurement at the missing time step::
     >>> from numpy import ma
     >>> X = ma.array([1,2,3])
     >>> X[1] = ma.masked  # hide measurement at time step 1
-    >>> kf.fit(X).predict(X)
+    >>> kf.em(X).smooth(X)
 
 .. seealso::
 

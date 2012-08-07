@@ -1,7 +1,7 @@
 Kalman Filters for Python
 =========================
 
-Welcome to ``kalman``, the dead-simple Kalman Filter, Kalman Smoother, and EM library for Python::
+Welcome to `kalman`, the dead-simple Kalman Filter, Kalman Smoother, and EM library for Python:
 
     >>> from kalman import KalmanFilter
     >>> import numpy as np
@@ -11,7 +11,7 @@ Welcome to ``kalman``, the dead-simple Kalman Filter, Kalman Smoother, and EM li
     >>> (filtered_state_means, filtered_state_covariances) = kf.filter(measurements)
     >>> (smoothed_state_means, smoothed_state_covariances) = kf.smooth(measurements)
 
-Also included is support for missing measurements::
+Also included is support for missing measurements:
 
     >>> from numpy import ma
     >>> measurements = ma.asarray(measurements)
@@ -20,13 +20,13 @@ Also included is support for missing measurements::
     >>> (filtered_state_means, filtered_state_covariances) = kf.filter(measurements)
     >>> (smoothed_state_means, smoothed_state_covariances) = kf.smooth(measurements)
 
-And for the non-linear dynamics via the ``UnscentedKalmanFilter``
+And for the non-linear dynamics via the `UnscentedKalmanFilter`
 
 
 Installation
 ============
 
-``kalman`` depends on the following libraries
+`kalman` depends on the following libraries
 
 * numpy     (for core functionality)
 * scipy     (for core functionality)
@@ -34,16 +34,12 @@ Installation
 * numpydoc  (for generating documentation)
 * nose      (for running tests)
 
-All of these can be installed via pip::
+All of these and `kalman` can be installed via `easy_install`:
 
-    $ pip install numpy scipy Sphinx numpydoc nose
-
-You can then install kalman using setup.py
-
-    $ sudo python setup.py install
+    $ easy_install numpy scipy Sphinx numpydoc nose kalman
 
 
 Examples
 ========
 
-Examples of all of ``kalman``'s functionality can be found in the scripts in the examples/ folder.
+Examples of all of `kalman`'s functionality can be found in the scripts in the examples/ folder.

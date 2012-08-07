@@ -1,6 +1,7 @@
 *.pyc
 .DS_Store
 
+build/
 dist/
-doc/_build/
-doc/_*
+doc/build/
+kalman.egg-info/

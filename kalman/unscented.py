@@ -409,7 +409,7 @@ def _augmented_unscented_smoother(mu_filt, sigma_filt, f, Q):
 
 
 class UnscentedKalmanFilter():
-    '''Implements the General (aka Augmented) Unscented Kalman Filter governed
+    r'''Implements the General (aka Augmented) Unscented Kalman Filter governed
     by the following equations,
 
     .. math::
@@ -423,12 +423,12 @@ class UnscentedKalmanFilter():
     the observation equation are both normally distributed, any non-linear
     transformation may be applied afterwards.  This allows for greater
     generality, but at the expense of computational complexity.  The complexity
-    of `GeneralUnscentedKalmanFilter.filter()`is :math:`O(T(2n+m)^3)` where
-    :math:`T` is the number of time steps, :math:`n` is the size of the state
-    space, and :math:`m` is the size of the observation space.
+    of :class:`UnscentedKalmanFilter.filter()` is :math:`O(T(2n+m)^3)`
+    where :math:`T` is the number of time steps, :math:`n` is the size of the
+    state space, and :math:`m` is the size of the observation space.
 
     If your noise is simply additive, consider using the
-    `AdditiveUnscentedKalmanFilter`
+    :class:`AdditiveUnscentedKalmanFilter`
 
     Parameters
     ----------
@@ -718,7 +718,7 @@ def _additive_unscented_smoother(mu_filt, sigma_filt, f, Q):
 
 
 class AdditiveUnscentedKalmanFilter():
-    '''Implements the Unscented Kalman Filter with additive noise.
+    r'''Implements the Unscented Kalman Filter with additive noise.
     Observations are assumed to be generated from the following process,
 
     .. math::
