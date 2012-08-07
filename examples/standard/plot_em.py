@@ -62,7 +62,7 @@ kf = KalmanFilter(
 loglikelihoods = np.zeros(10)
 for i in range(len(loglikelihoods)):
     kf = kf.em(X=data.observations, n_iter=1)
-    loglikelihoods[i] = kf.score(data.observations)
+    loglikelihoods[i] = kf.loglikelihood(data.observations)
 
 # Estimate the state without using any observations.  This will let us see how
 # good we could do if we ran blind.

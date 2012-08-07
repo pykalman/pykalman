@@ -931,8 +931,8 @@ class KalmanFilter(object):
     The Kalman Filter is an algorithm designed to estimate
     :math:`P(x_t | z_{0:t})`.  As all state transitions and observations are
     linear with Gaussian distributed noise, these distributions can be
-    represented exactly as Gaussian distributions with mean `mu_filt[t]` and
-    covariances `sigma_filt[t]`.
+    represented exactly as Gaussian distributions with mean
+    `filtered_state_means[t]` and covariances `filtered_state_covariances[t]`.
 
     Similarly, the Kalman Smoother is an algorithm designed to estimate
     :math:`P(x_t | z_{0:T-1})`.
@@ -944,7 +944,7 @@ class KalmanFilter(object):
 
         \\max_{\\theta} P(z_{0:T-1}; \\theta)
 
-    If we define :math:`L(x_{0:t},\\theta) = \\log P(z_{0:T-1}, x_{0:T-1};
+    If we define :math:`L(x_{0:T-1},\\theta) = \\log P(z_{0:T-1}, x_{0:T-1};
     \\theta)`, then the EM algorithm works by iteratively finding,
 
     .. math::
@@ -1413,7 +1413,7 @@ class KalmanFilter(object):
             )
         return self
 
-    def score(self, X):
+    def loglikelihood(self, X):
         """Calculate the log likelihood of all observations
 
         Parameters

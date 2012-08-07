@@ -116,21 +116,21 @@ def test_kalman_fit():
         data.initial_state_covariance,
         em_vars=['transition_covariance', 'observation_covariance'])
 
-    scores = np.zeros(5)
-    for i in range(len(scores)):
-        scores[i] = kf.score(data.observations)
+    loglikelihoods = np.zeros(5)
+    for i in range(len(loglikelihoods)):
+        loglikelihoods[i] = kf.loglikelihood(data.observations)
         kf.em(X=data.observations, n_iter=1)
 
-    assert_true(np.allclose(scores, data.loglikelihoods[:5]))
+    assert_true(np.allclose(loglikelihoods, data.loglikelihoods[:5]))
 
     # check that EM for all parameters is working
     kf.em_vars = 'all'
     n_timesteps = 30
-    for i in range(len(scores)):
+    for i in range(len(loglikelihoods)):
         kf.em(X=data.observations[0:n_timesteps], n_iter=1)
-        scores[i] = kf.score(data.observations[0:n_timesteps])
-    for i in range(len(scores) - 1):
-        assert_true(scores[i] < scores[i + 1])
+        loglikelihoods[i] = kf.loglikelihood(data.observations[0:n_timesteps])
+    for i in range(len(loglikelihoods) - 1):
+        assert_true(loglikelihoods[i] < loglikelihoods[i + 1])
 
 
 def test_kalman_initialize_parameters():
@@ -175,7 +175,7 @@ def test_kalman_pickle():
     # train and get log likelihood
     X = data.observations[0:10]
     kf = kf.em(X, n_iter=5)
-    score = kf.score(X)
+    loglikelihood = kf.loglikelihood(X)
 
     # pickle Kalman Filter
     store = StringIO()
@@ -183,7 +183,7 @@ def test_kalman_pickle():
     clf = pickle.load(StringIO(store.getvalue()))
 
     # check that parameters came out already
-    np.testing.assert_almost_equal(score, kf.score(X))
+    np.testing.assert_almost_equal(loglikelihood, kf.loglikelihood(X))
 
     # store it as BytesIO as well
     store = BytesIO()
