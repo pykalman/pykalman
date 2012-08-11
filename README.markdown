@@ -1,9 +1,9 @@
 Kalman Filters for Python
 =========================
 
-Welcome to `kalman`, the dead-simple Kalman Filter, Kalman Smoother, and EM library for Python:
+Welcome to `pykalman`, the dead-simple Kalman Filter, Kalman Smoother, and EM library for Python:
 
-    >>> from kalman import KalmanFilter
+    >>> from pykalman import KalmanFilter
     >>> import numpy as np
     >>> kf = KalmanFilter(transition_matrices = [[1, 1], [0, 1]], observation_matrices = [[0.1, 0.5], [-0.3, 0.0]])
     >>> measurements = np.asarray([[1,0], [0,0], [0,1]])  # 3 observations
@@ -26,7 +26,7 @@ And for the non-linear dynamics via the `UnscentedKalmanFilter`
 Installation
 ============
 
-`kalman` depends on the following libraries
+`pykalman` depends on the following libraries
 
 * numpy     (for core functionality)
 * scipy     (for core functionality)
@@ -34,12 +34,12 @@ Installation
 * numpydoc  (for generating documentation)
 * nose      (for running tests)
 
-All of these and `kalman` can be installed via `easy_install`:
+All of these and `pykalman` can be installed via `easy_install`:
 
-    $ easy_install numpy scipy Sphinx numpydoc nose kalman
+    $ easy_install numpy scipy Sphinx numpydoc nose pykalman
 
 
 Examples
 ========
 
-Examples of all of `kalman`'s functionality can be found in the scripts in the examples/ folder.
+Examples of all of `pykalman`'s functionality can be found in the scripts in the examples/ folder.

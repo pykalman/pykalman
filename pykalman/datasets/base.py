@@ -28,7 +28,7 @@ def load_robot():
 
     Examples
     --------
-    >>> from kalman.datasets import load_robot
+    >>> from pykalman.datasets import load_robot
     >>> data = load_robot()
     >>> data.data.shape
     (501, 2)

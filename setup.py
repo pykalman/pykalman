@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name = 'kalman',
+    name = 'pykalman',
     version = '0.9',
     author = 'Daniel Duckworth',
     author_email = 'pykalman@gmail.com',

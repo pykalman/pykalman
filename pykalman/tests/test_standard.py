@@ -7,8 +7,8 @@ from numpy.testing import assert_array_almost_equal
 from scipy import linalg
 from nose.tools import assert_true
 
-from kalman import KalmanFilter
-from kalman.datasets import load_robot
+from pykalman import KalmanFilter
+from pykalman.datasets import load_robot
 
 data = load_robot()
 

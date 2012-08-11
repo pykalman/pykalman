@@ -957,7 +957,7 @@ class KalmanFilter(object):
 
         \\theta_{i+1} = \\arg\\max_{\\theta}
             \\mathbb{E}_{x_{0:T-1}} [
-                L(x_{0:t}, \\theta)| z_{0:T-1}, \\theta_i
+                L(x_{0:T-1}, \\theta)| z_{0:T-1}, \\theta_i
             ]
 
     Parameters

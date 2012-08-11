@@ -1,20 +1,20 @@
 
-.. currentmodule:: kalman
+.. currentmodule:: pykalman
 
 :class:`KalmanFilter`
 =====================
 
-.. autoclass:: kalman.KalmanFilter
+.. autoclass:: pykalman.KalmanFilter
     :members:
 
 :class:`UnscentedKalmanFilter`
 ==============================
 
-.. autoclass:: kalman.UnscentedKalmanFilter
+.. autoclass:: pykalman.UnscentedKalmanFilter
     :members:
 
 :class:`AdditiveUnscentedKalmanFilter`
 ======================================
 
-.. autoclass:: kalman.AdditiveUnscentedKalmanFilter
+.. autoclass:: pykalman.AdditiveUnscentedKalmanFilter
     :members:

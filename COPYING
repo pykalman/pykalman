@@ -1,5 +1,5 @@
-All code contained except that in kalman/utils.py is released under the
-license below. All code in kalman/utils.py is released under the license
+All code contained except that in pykalman/utils.py is released under the
+license below. All code in pykalman/utils.py is released under the license
 contained therein.
 
 New BSD License

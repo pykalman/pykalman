@@ -20,8 +20,8 @@ Kalman Filter.
 import numpy as np
 import pylab as pl
 
-from kalman.datasets import load_robot
-from kalman import KalmanFilter
+from pykalman.datasets import load_robot
+from pykalman import KalmanFilter
 
 # Initialize the Kalman Filter
 data = load_robot()

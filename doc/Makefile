@@ -77,17 +77,17 @@ qthelp:
 	@echo
 	@echo "Build finished; now you can run "qcollectiongenerator" with the" \
 	      ".qhcp project file in $(BUILDDIR)/qthelp, like this:"
-	@echo "# qcollectiongenerator $(BUILDDIR)/qthelp/kalman.qhcp"
+	@echo "# qcollectiongenerator $(BUILDDIR)/qthelp/pykalman.qhcp"
 	@echo "To view the help file:"
-	@echo "# assistant -collectionFile $(BUILDDIR)/qthelp/kalman.qhc"
+	@echo "# assistant -collectionFile $(BUILDDIR)/qthelp/pykalman.qhc"
 
 devhelp:
 	$(SPHINXBUILD) -b devhelp $(ALLSPHINXOPTS) $(BUILDDIR)/devhelp
 	@echo
 	@echo "Build finished."
 	@echo "To view the help file:"
-	@echo "# mkdir -p $$HOME/.local/share/devhelp/kalman"
-	@echo "# ln -s $(BUILDDIR)/devhelp $$HOME/.local/share/devhelp/kalman"
+	@echo "# mkdir -p $$HOME/.local/share/devhelp/pykalman"
+	@echo "# ln -s $(BUILDDIR)/devhelp $$HOME/.local/share/devhelp/pykalman"
 	@echo "# devhelp"
 
 epub:

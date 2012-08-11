@@ -1,11 +1,11 @@
 
 =======================================================
-`Kalman Filter <https://github.com/pykalman/pykalman>`_
+`pykalman <https://github.com/pykalman/pykalman>`_
 =======================================================
 
-Welcome to `kalman <https://github.com/pykalman/pykalman>`_, the dead-simple Kalman Filter, Kalman Smoother, and EM library for Python::
+Welcome to `pykalman <https://github.com/pykalman/pykalman>`_, the dead-simple Kalman Filter, Kalman Smoother, and EM library for Python::
 
-    >>> from kalman import KalmanFilter
+    >>> from pykalman import KalmanFilter
     >>> import numpy as np
     >>> kf = KalmanFilter(transition_matrices = [[1, 1], [0, 1]], observation_matrices = [[0.1, 0.5], [-0.3, 0.0]])
     >>> measurements = np.asarray([[1,0], [0,0], [0,1]])  # 3 observations
@@ -33,9 +33,9 @@ Installation
 
 For a quick installation::
 
-    $ easy_install kalman
+    $ easy_install pykalman
 
-:mod:`kalman` depends on the following modules,
+:mod:`pykalman` depends on the following modules,
 
 * :mod:`numpy`     (for core functionality)
 * :mod:`scipy`     (for core functionality)
@@ -43,15 +43,15 @@ For a quick installation::
 * :mod:`numpydoc`  (for generating documentation)
 * :mod:`nose`      (for running tests)
 
-All of these and :mod:`kalman` can be installed using ``easy_install``::
+All of these and :mod:`pykalman` can be installed using ``easy_install``::
 
-    $ easy_install numpy scipy Sphinx numpydoc nose kalman
+    $ easy_install numpy scipy Sphinx numpydoc nose pykalman
 
 Alternatively, you can get the latest and greatest from `github
 <https://github.com/pykalman/pykalman>`_::
 
-    $ git clone git@github.com:pykalman/pykalman.git kalman
-    $ cd kalman
+    $ git clone git@github.com:pykalman/pykalman.git pykalman
+    $ cd pykalman
     $ sudo python setup.py install
 
 

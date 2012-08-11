@@ -1,4 +1,4 @@
-.. currentmodule:: kalman
+.. currentmodule:: pykalman
 
 The Kalman Filter is a unsupervised algorithm for tracking a single object in a
 continuous state space.  Given a sequence of noisy measurements, the Kalman
@@ -35,7 +35,7 @@ state and observation space.  This can be done directly by setting
 :attr:`n_dim_state` or :attr:`n_dim_obs` or indirectly by specifying an initial
 value for any of the model parameters from which the former can be derived::
 
-    >>> from kalman import KalmanFilter
+    >>> from pykalman import KalmanFilter
     >>> kf = KalmanFilter(initial_state_mean=0, n_dim_obs=2)
 
 The traditional Kalman Filter assumes that model parameters are known
@@ -81,7 +81,7 @@ is.
 
 .. code-block:: python
 
-    from scipy.states import norm
+    from scipy.stats import norm
     import numpy as np
     states = np.zeros((n_timesteps, n_dim_state))
     measurements = np.zeros((n_timesteps, n_dim_obs))

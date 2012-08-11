@@ -1,1 +1,1 @@
-recursive-include kalman/datasets *.rst *.mat
+recursive-include pykalman/datasets *.rst *.mat

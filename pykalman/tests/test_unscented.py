@@ -4,8 +4,8 @@ from numpy.testing import assert_array_almost_equal
 
 from nose.tools import assert_true
 
-from kalman import AdditiveUnscentedKalmanFilter, UnscentedKalmanFilter
-from kalman.datasets import load_robot
+from pykalman import AdditiveUnscentedKalmanFilter, UnscentedKalmanFilter
+from pykalman.datasets import load_robot
 
 data = load_robot()
 
