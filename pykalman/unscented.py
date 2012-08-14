@@ -15,7 +15,108 @@ from .utils import array1d, array2d, check_random_state
 from .standard import _last_dims
 
 
-def _unscented_moments(points, weights_mu, weights_sigma):
+def _unscented_transform2(
+        mean, covariance2, f, noise_covariance2=None,
+        alpha=1e-3, beta=2.0, kappa=0.0
+    ):
+    '''
+    Parameters
+    ----------
+    mean: [n_dim] array
+    covariance2: [n_dim, n_dim] array
+        square root of covariance matrix
+    f : n_dim -> n_dim function
+    noise_covariance2 : [n_dim, n_dim] array
+        square of covariance matrix of additive noise
+
+    Returns
+    -------
+    mean: [n_dim] array
+        weighted mean of sigma points propagated through f
+    covariance2: [n_dim, n_dim] array
+        square root of weighted covariance of sigma points propagated through f
+    '''
+    n_dim = len(mean)
+    if noise_covariance2 is None:
+      noise_covariance2 = np.zeros((n_dim, n_dim))
+    mean = np.asarray(mean, dtype=float)
+
+    # calculate scaling factor for all off-center points
+    lamda = (alpha * alpha) * (n_dim + kappa) - n_dim
+    c = n_dim + lamda
+
+    # calculate weights
+    weights_mean = np.ones(2 * n_dim + 1)
+    weights_mean[0] = lamda / c
+    weights_mean[1:] = 0.5 / c
+    weights_cov = np.copy(weights_mean)
+    weights_cov[0] = lamda / c + (1 - alpha * alpha + beta)
+
+    # make sigma points
+    points = np.tile(mean[:, np.newaxis], (1, 2 * n_dim + 1))
+    points[:, 1:n_dim+1] = mean[:, np.newaxis] + sigma2 * np.sqrt(c)
+    points[:, n_dim+1:]  = mean[:, np.newaxis] - sigma2 * np.sqrt(c)
+
+    # propagate through function
+    transformed_points = [f(points[:, i]) for i in range(2 * n_dim + 1)]
+    transformed_points = np.vstack(transformed_points)
+
+    # calculate new mean
+    transformed_mean = transformed_points.T.dot(weights_mean)
+
+    # calculate new square root covariance
+    transformed_covariance2 = qr(np.hstack([
+      np.sqrt(weights_cov[1]) * (transformed_points[:, 1:] - transformed_mean[:, np.newaxis]),
+      noise_covariance2
+    ]))
+    transformed_covariance2 = cholupdate(
+        transformed_covariance2,
+        (transformed_points[:, 0] - transformed_mean[:, np.newaxis]).T,
+        weights_cov[0]
+    )
+    return (transformed_mean, transformed_covariance2, transformed_points)
+
+
+def cholupdate(A2, x, weight):
+  '''Calculate chol(A + w x x')
+
+  Parameters
+  ----------
+  A2 : [n_dim, n_dim] array
+      A = A2.T.dot(A2) for A positive definite, symmetric
+  x : [n_dim] or [n_vec, n_dim] array
+      vector(s) to be used for x.  If x has 2 dimensions, then each row will be
+      added in turn.
+  weight : float
+      square of weight to be multiplied to each x x'. If negative, will use
+      sign(weight) * sqrt(abs(weight)) instead of sqrt(weight).
+
+  Returns
+  -------
+  A2 : [n_dim, n_dim array]
+      cholesky decomposition of updated matrix
+  '''
+  if len(x.shape) == 1:
+      x = x[np.newaxis,:]
+  n_vec, n_dim = x.shape
+
+  M = A2.T.dot(A2)
+  for i in range(n_vec):
+      M += np.sign(weight) * np.sqrt(np.abs(weight)) * np.outer(x[i], x[i])
+
+  return linalg.cholesky(M)
+
+
+def qr(A):
+    '''Get square upper triangular matrix of QR decomposition of matrix A'''
+    N, L = A.shape
+    if not N >= L:
+        raise ValueError("Number of columns must exceed number of rows")
+    Q, R = linalg.qr(A)
+    return R[:L, :L]
+
+
+def _unscented_moments(points, weights_mu, weights_sigma, sigma2_noise=None):
     '''Calculate the weighted mean and covariance of `points`
 
     Parameters
@@ -26,29 +127,40 @@ def _unscented_moments(points, weights_mu, weights_sigma):
         weights used to calculate the mean
     weights_sigma : [2 * n_dim_state + 1] array
         weights used to calcualte the covariance
+    sigma2_noise : [n_dim_state, n_dim_state] array
+        square root of additive noise covariance matrix
 
     Returns
     -------
     mu : [n_dim_state] array
         approximate mean
-    sigma : [n_dim_state, n_dim_state] array
-        approximate covariance
+    sigma2 : [n_dim_state, n_dim_state] array
+        R s.t. R' R = approximate covariance
     '''
     mu = points.T.dot(weights_mu)
-    points_diff = points.T - mu[:, np.newaxis]
-    sigma = points_diff.dot(np.diag(weights_sigma)).dot(points_diff.T)
-    return (mu.ravel(), sigma)
+
+    # make points to perform QR factorization on. each column is one data point
+    qr_points = [
+        np.sign(weights_sigma)[np.newaxis, :]
+        * np.sqrt(np.abs(weights_sigma))[np.newaxis, :]
+        * (points.T - mu[:, np.newaxis])
+    ]
+    if sigma2_noise is not None:
+        qr_points.append(sigma2_noise)
+    sigma2 = qr(np.hstack(qr_points).T)
+    #sigma2 = cholupdate(sigma2, points[0] - mu, weights_sigma[0])
+    return (mu.ravel(), sigma2)
 
 
-def _sigma_points(mu, sigma, alpha=1e-3, beta=2.0, kappa=0.0):
+def _sigma_points(mu, sigma2, alpha=1e-3, beta=2.0, kappa=0.0):
     '''Calculate "sigma points" used in Unscented Kalman Filter
 
     Parameters
     ----------
     mu : [n_dim] array
         Mean of multivariate normal distribution
-    sigma : [n_dim, n_dim] array
-        Covariance of multivariate normal
+    sigma2 : [n_dim, n_dim] array
+        R s.t. R' R = Covariance of multivariate normal
     alpha : float
         Spread of the sigma points. Typically 1e-3.
     beta : float
@@ -69,8 +181,8 @@ def _sigma_points(mu, sigma, alpha=1e-3, beta=2.0, kappa=0.0):
     n_dim = len(mu)
     mu = array2d(mu, dtype=float)
 
-    # compute sqrt(sigma)
-    sigma2 = linalg.cholesky(sigma).T
+    # just because I saw it in the MATLAB implementation
+    sigma2 = sigma2.T
 
     # Calculate scaling factor for all off-center points
     lamda = (alpha * alpha) * (n_dim + kappa) - n_dim
@@ -96,7 +208,7 @@ def _sigma_points(mu, sigma, alpha=1e-3, beta=2.0, kappa=0.0):
 
 
 def _unscented_transform(f, points, weights_mean, weights_cov,
-                         points_noise=None):
+                         points_noise=None, sigma2_noise=None):
     '''Apply the Unscented Transform.
 
     Parameters
@@ -111,6 +223,8 @@ def _unscented_transform(f, points, weights_mean, weights_cov,
         weights used to calculate empirical covariance
     points_noise : [n_points, n_dim_3] array
         points representing noise to pass through `f`, if any.
+    sigma2_noise : [n_dim_2, n_dim_2] array
+        square root of covariance matrix for additive noise
 
     Returns
     =======
@@ -118,8 +232,8 @@ def _unscented_transform(f, points, weights_mean, weights_cov,
         points passed through f
     mu_pred : [n_dim_2] array
         empirical mean
-    sigma_pred : [n_dim_2, n_dim_2] array
-        empirical covariance
+    sigma2_pred : [n_dim_2, n_dim_2] array
+        R s.t. R' R = empirical covariance
     '''
     n_points = points.shape[0]
 
@@ -133,14 +247,15 @@ def _unscented_transform(f, points, weights_mean, weights_cov,
     points_pred = np.vstack(points_pred)
 
     # calculate approximate mean, covariance
-    (mu_pred, sigma_pred) = _unscented_moments(
-        points_pred, weights_mean, weights_cov)
+    (mu_pred, sigma2_pred) = _unscented_moments(
+        points_pred, weights_mean, weights_cov, sigma2_noise
+    )
 
-    return (points_pred, mu_pred, sigma_pred)
+    return (points_pred, mu_pred, sigma2_pred)
 
 
-def _unscented_correct(cross_sigma, mu_pred, sigma_pred, obs_mu_pred,
-                       obs_sigma_pred, z):
+def _unscented_correct(cross_sigma, mu_pred, sigma2_pred, obs_mu_pred,
+                       obs_sigma2_pred, z):
     '''Correct predicted state estimates with an observation
 
     Parameters
@@ -150,14 +265,14 @@ def _unscented_correct(cross_sigma, mu_pred, sigma_pred, obs_mu_pred,
         from timesteps [0, t-1] and the observation at time t
     mu_pred : [n_dim_state] array
         mean of state at time t given observations from timesteps [0, t-1]
-    sigma_pred : [n_dim_state, n_dim_state] array
-        covariance of state at time t given observations from timesteps [0,
-        t-1]
+    sigma2_pred : [n_dim_state, n_dim_state] array
+        square root of covariance of state at time t given observations from
+        timesteps [0, t-1]
     obs_mu_pred : [n_dim_obs] array
         mean of observation at time t given observations from times [0, t-1]
-    obs_sigma_pred : [n_dim_obs] array
-        covariance of observation at time t given observations from times [0,
-        t-1]
+    obs_sigma2_pred : [n_dim_obs] array
+        square root of covariance of observation at time t given observations
+        from times [0, t-1]
     z : [n_dim_obs] array
         observation at time t
 
@@ -165,24 +280,28 @@ def _unscented_correct(cross_sigma, mu_pred, sigma_pred, obs_mu_pred,
     -------
     mu_filt : [n_dim_state] array
         mean of state at time t given observations from time steps [0, t]
-    sigma_filt : [n_dim_state, n_dim_state] array
-        covariance of state at time t given observations from time steps [0, t]
+    sigma2_filt : [n_dim_state, n_dim_state] array
+        square root of covariance of state at time t given observations from
+        time steps [0, t]
     '''
     n_dim_state = len(mu_pred)
     n_dim_obs = len(obs_mu_pred)
 
     if not np.any(ma.getmask(z)):
         # calculate Kalman gain
-        K = cross_sigma.dot(linalg.pinv(obs_sigma_pred))
+        K = cross_sigma.dot(linalg.pinv(obs_sigma2_pred.T.dot(obs_sigma2_pred)))
+        #K = linalg.lstsq(cross_sigma.T, obs_sigma2_pred.T)[0]
+        #K = linalg.lstsq(K.T, obs_sigma2_pred)[0]
 
         # correct mu, sigma
         mu_filt = mu_pred + K.dot(z - obs_mu_pred)
-        sigma_filt = sigma_pred - K.dot(cross_sigma.T)
+        U = K.dot(obs_sigma2_pred)
+        sigma2_filt = cholupdate(sigma2_pred, U.T, -1.0)
     else:
         # no corrections to be made
         mu_filt = mu_pred
-        sigma_filt = sigma_pred
-    return (mu_filt, sigma_filt)
+        sigma2_filt = sigma2_pred
+    return (mu_filt, sigma2_filt)
 
 
 def _augment(means, covariances):
@@ -593,39 +712,43 @@ def _additive_unscented_filter(mu_0, sigma_0, f, g, Q, R, Z):
 
     # construct container for results
     mu_filt = np.zeros((T, n_dim_state))
+    sigma2_filt = np.zeros((T, n_dim_state, n_dim_state))
     sigma_filt = np.zeros((T, n_dim_state, n_dim_state))
+    Q2 = linalg.cholesky(Q)
+    R2 = linalg.cholesky(R)
 
     for t in range(T):
         # Calculate sigma points for P(x_{t-1} | z_{0:t-1})
         if t == 0:
-            mu, sigma = mu_0, sigma_0
+            mu, sigma2 = mu_0, linalg.cholesky(sigma_0)
         else:
-            mu, sigma = mu_filt[t - 1], sigma_filt[t - 1]
+            mu, sigma2 = mu_filt[t - 1], sigma2_filt[t - 1]
 
-        (points_state, weights_mu, weights_sigma) = _sigma_points(mu, sigma)
+        (points_state, weights_mu, weights_sigma) = _sigma_points(mu, sigma2)
 
         # Calculate E[x_t | z_{0:t-1}], Var(x_t | z_{0:t-1})
         if t == 0:
             points_pred = points_state
-            (mu_pred, sigma_pred) = (
+            (mu_pred, sigma2_pred) = (
                 _unscented_moments(points_pred, weights_mu, weights_sigma)
             )
         else:
             f_t1 = _last_dims(f, t - 1, ndims=1)[0]
-            (_, mu_pred, sigma_pred) = (
+
+            (_, mu_pred, sigma2_pred) = (
                 _unscented_transform(f_t1, points_state,
-                                     weights_mu, weights_sigma)
+                                     weights_mu, weights_sigma,
+                                     sigma2_noise=Q2)
             )
-            sigma_pred += Q
-            points_pred = _sigma_points(mu_pred, sigma_pred)[0]
+            points_pred = _sigma_points(mu_pred, sigma2_pred)[0]
 
         # Calculate E[z_t | z_{0:t-1}], Var(z_t | z_{0:t-1})
         g_t = _last_dims(g, t, ndims=1)[0]
-        (obs_points_pred, obs_mu_pred, obs_sigma_pred) = (
+        (obs_points_pred, obs_mu_pred, obs_sigma2_pred) = (
             _unscented_transform(g_t, points_pred,
-                                 weights_mu, weights_sigma)
+                                 weights_mu, weights_sigma,
+                                 sigma2_noise=R2)
         )
-        obs_sigma_pred += R
 
         # Calculate Cov(x_t, z_t | z_{0:t-1})
         sigma_pair = (
@@ -635,10 +758,16 @@ def _additive_unscented_filter(mu_0, sigma_0, f, g, Q, R, Z):
         )
 
         # Calculate E[x_t | z_{0:t}], Var(x_t | z_{0:t})
-        (mu_filt[t], sigma_filt[t]) = (
-            _unscented_correct(sigma_pair, mu_pred, sigma_pred, obs_mu_pred,
-                               obs_sigma_pred, Z[t])
+        (mu_filt[t], sigma2_filt[t]) = (
+            _unscented_correct(sigma_pair,
+                               mu_pred, sigma2_pred,
+                               obs_mu_pred, obs_sigma2_pred,
+                               Z[t])
         )
+
+    # calculate actual covariance based on its cholesky decomposition
+    for t in range(T):
+        sigma_filt[t] = sigma2_filt[t].T.dot(sigma2_filt[t])
 
     return (mu_filt, sigma_filt)
 
