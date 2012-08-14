@@ -130,26 +130,26 @@ def test_additive_filter():
     )
 
 
-#def test_additive_smoother():
-#    # true unscented mean, covariance, as calculated by a MATLAB urts_smooth1
-#    # available in http://becs.aalto.fi/en/research/bayes/ekfukf/
-#    mu_true = np.zeros((3, 2), dtype=float)
-#    mu_true[0] = [2.92725011499923, 1.63582509399207]
-#    mu_true[1] = [4.87447429622188, 1.64678689063005]
-#    mu_true[2] = [6.71906243585852, 1.52810614139809]
-#
-#    sigma_true = np.zeros((3, 2, 2), dtype=float)
-#    sigma_true[0] = [[0.99379975649288, 0.21601451308325],
-#                     [0.21601451308325, 1.25274857496361]]
-#    sigma_true[1] = [[1.570868803779,   1.03741785934372],
-#                     [1.03741785934372, 2.49806235789009]]
-#    sigma_true[2] = [[4.39024658597909, 3.90194406652556],
-#                     [3.90194406652556, 5.40957304471631]]
-#
-#    check_unscented_prediction(
-#        build_unscented_filter(UnscentedKalmanFilter).smooth,
-#        mu_true, sigma_true
-#    )
+def test_additive_smoother():
+    # true unscented mean, covariance, as calculated by a MATLAB urts_smooth1
+    # available in http://becs.aalto.fi/en/research/bayes/ekfukf/
+    mu_true = np.zeros((3, 2), dtype=float)
+    mu_true[0] = [2.92725011499923, 1.63582509399207]
+    mu_true[1] = [4.87447429622188, 1.64678689063005]
+    mu_true[2] = [6.71906243585852, 1.52810614139809]
+
+    sigma_true = np.zeros((3, 2, 2), dtype=float)
+    sigma_true[0] = [[0.99379975649288, 0.21601451308325],
+                     [0.21601451308325, 1.25274857496361]]
+    sigma_true[1] = [[1.570868803779,   1.03741785934372],
+                     [1.03741785934372, 2.49806235789009]]
+    sigma_true[2] = [[4.39024658597909, 3.90194406652556],
+                     [3.90194406652556, 5.40957304471631]]
+
+    check_unscented_prediction(
+        build_unscented_filter(AdditiveUnscentedKalmanFilter).smooth,
+        mu_true, sigma_true
+    )
 
 
 def test_cholupdate():

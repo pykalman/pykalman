@@ -701,9 +701,9 @@ def _additive_unscented_filter(mu_0, sigma_0, f, g, Q, R, Z):
     mu_filt : [T, n_dim_state] array
         mu_filt[t] = mean of state at time t given observations from times [0,
         t]
-    sigma_filt : [T, n_dim_state, n_dim_state] array
-        sigma_filt[t] = covariance of state at time t given observations from
-        times [0, t]
+    sigma2_filt : [T, n_dim_state, n_dim_state] array
+        sigma2_filt[t] = square root of the covariance of state at time t given
+        observations from times [0, t]
     '''
     # extract size of key components
     T = Z.shape[0]
@@ -713,7 +713,6 @@ def _additive_unscented_filter(mu_0, sigma_0, f, g, Q, R, Z):
     # construct container for results
     mu_filt = np.zeros((T, n_dim_state))
     sigma2_filt = np.zeros((T, n_dim_state, n_dim_state))
-    sigma_filt = np.zeros((T, n_dim_state, n_dim_state))
     Q2 = linalg.cholesky(Q)
     R2 = linalg.cholesky(R)
 
@@ -765,14 +764,10 @@ def _additive_unscented_filter(mu_0, sigma_0, f, g, Q, R, Z):
                                Z[t])
         )
 
-    # calculate actual covariance based on its cholesky decomposition
-    for t in range(T):
-        sigma_filt[t] = sigma2_filt[t].T.dot(sigma2_filt[t])
-
-    return (mu_filt, sigma_filt)
+    return (mu_filt, sigma2_filt)
 
 
-def _additive_unscented_smoother(mu_filt, sigma_filt, f, Q):
+def _additive_unscented_smoother(mu_filt, sigma2_filt, f, Q):
     '''Apply the Unscented Kalman Filter assuming additiven noise
 
     Parameters
@@ -780,9 +775,9 @@ def _additive_unscented_smoother(mu_filt, sigma_filt, f, Q):
     mu_filt : [T, n_dim_state] array
         mu_filt[t] = mean of state at time t given observations from times
         [0, t]
-    sigma_filt : [T, n_dim_state, n_dim_state] array
-        sigma_filt[t] = covariance of state at time t given observations from
-        times [0, t]
+    sigma_2filt : [T, n_dim_state, n_dim_state] array
+        sigma2_filt[t] = square root of the covariance of state at time t given
+        observations from times [0, t]
     f : function or [T-1] array of functions
         state transition function(s). Takes in an the current state and outputs
         the next.
@@ -794,32 +789,33 @@ def _additive_unscented_smoother(mu_filt, sigma_filt, f, Q):
     mu_smooth : [T, n_dim_state] array
         mu_smooth[t] = mean of state at time t given observations from times
         [0, T-1]
-    sigma_smooth : [T, n_dim_state, n_dim_state] array
-        sigma_smooth[t] = covariance of state at time t given observations from
-        times [0, T-1]
+    sigma2_smooth : [T, n_dim_state, n_dim_state] array
+        sigma2_smooth[t] = square root of the covariance of state at time t
+        given observations from times [0, T-1]
     '''
     # extract size of key parts of problem
     T, n_dim_state = mu_filt.shape
 
     # instantiate containers for results
     mu_smooth = np.zeros(mu_filt.shape)
-    sigma_smooth = np.zeros(sigma_filt.shape)
-    mu_smooth[-1], sigma_smooth[-1] = mu_filt[-1], sigma_filt[-1]
+    sigma2_smooth = np.zeros(sigma2_filt.shape)
+    mu_smooth[-1], sigma2_smooth[-1] = mu_filt[-1], sigma2_filt[-1]
+    Q2 = linalg.cholesky(Q)
 
     for t in reversed(range(T - 1)):
         # get sigma points for state
         mu = mu_filt[t]
-        sigma = sigma_filt[t]
+        sigma2 = sigma2_filt[t]
 
         (points_state, weights_mu, weights_sigma) = (
-            _sigma_points(mu, sigma)
+            _sigma_points(mu, sigma2)
         )
 
         # compute E[x_{t+1} | z_{0:t}], Var(x_{t+1} | z_{0:t})
         f_t = _last_dims(f, t, ndims=1)[0]
-        (points_pred, mu_pred, sigma_pred) = (
-            _unscented_transform(f_t, points_state, weights_mu, weights_sigma,
-                                 points_trans)
+        (points_pred, mu_pred, sigma2_pred) = (
+            _unscented_transform(f_t, points_state, weights_mu,
+                                 weights_sigma, sigma2_noise=Q2)
         )
 
         # Calculate Cov(x_{t+1}, x_t | z_{0:t-1})
@@ -830,20 +826,20 @@ def _additive_unscented_smoother(mu_filt, sigma_filt, f, Q):
         )
 
         # compute smoothed mean, covariance
-        smoother_gain = sigma_pair.dot(linalg.pinv(sigma_pred))
+        smoother_gain = (
+            sigma_pair.dot(linalg.pinv(sigma2_pred.T.dot(sigma2_pred)))
+        )
         mu_smooth[t] = (
             mu_filt[t]
             + smoother_gain
               .dot(mu_smooth[t + 1] - mu_pred)
         )
-        sigma_smooth[t] = (
-            sigma_filt[t]
-            + smoother_gain
-              .dot(sigma_smooth[t + 1] - sigma_pred)
-              .dot(smoother_gain.T)
+        U = cholupdate(sigma2_pred, sigma2_smooth[t + 1], -1.0)
+        sigma2_smooth[t] = (
+            cholupdate(sigma2_filt[t], smoother_gain.dot(U.T).T, -1.0)
         )
 
-    return (mu_smooth, sigma_smooth)
+    return (mu_smooth, sigma2_smooth)
 
 
 class AdditiveUnscentedKalmanFilter():
@@ -952,11 +948,18 @@ class AdditiveUnscentedKalmanFilter():
             observations from times [0, t]
         '''
         Z = ma.asarray(Z)
+        T = Z.shape[0]
 
-        (mu_filt, sigma_filt) = _additive_unscented_filter(
+        # run square root filter
+        (mu_filt, sigma2_filt) = _additive_unscented_filter(
             self.mu_0, self.sigma_0, self.f,
             self.g, self.Q, self.R, Z
         )
+
+        # reconstruct covariance matrices
+        sigma_filt = np.zeros(sigma2_filt.shape)
+        for t in range(T):
+            sigma_filt[t] = sigma2_filt[t].T.dot(sigma2_filt[t])
 
         return (mu_filt, sigma_filt)
 
@@ -980,10 +983,20 @@ class AdditiveUnscentedKalmanFilter():
             observations from times [0, T-1]
         '''
         Z = ma.asarray(Z)
+        T = Z.shape[0]
 
-        (mu_filt, sigma_filt) = self.filter(Z)
-        (mu_smooth, sigma_smooth) = _additive_unscented_smoother(
-            mu_filt, sigma_filt, self.f, self.Q
+        # run filter, then smoother
+        (mu_filt, sigma2_filt) = _additive_unscented_filter(
+            self.mu_0, self.sigma_0, self.f,
+            self.g, self.Q, self.R, Z
         )
+        (mu_smooth, sigma2_smooth) = _additive_unscented_smoother(
+            mu_filt, sigma2_filt, self.f, self.Q
+        )
+
+        # reconstruction covariance matrices
+        sigma_smooth = np.zeros(sigma2_smooth.shape)
+        for t in range(T):
+            sigma_smooth[t] = sigma2_smooth[t].T.dot(sigma2_smooth[t])
 
         return (mu_smooth, sigma_smooth)
