@@ -15,68 +15,6 @@ from .utils import array1d, array2d, check_random_state
 from .standard import _last_dims
 
 
-def _unscented_transform2(
-        mean, covariance2, f, noise_covariance2=None,
-        alpha=1e-3, beta=2.0, kappa=0.0
-    ):
-    '''
-    Parameters
-    ----------
-    mean: [n_dim] array
-    covariance2: [n_dim, n_dim] array
-        square root of covariance matrix
-    f : n_dim -> n_dim function
-    noise_covariance2 : [n_dim, n_dim] array
-        square of covariance matrix of additive noise
-
-    Returns
-    -------
-    mean: [n_dim] array
-        weighted mean of sigma points propagated through f
-    covariance2: [n_dim, n_dim] array
-        square root of weighted covariance of sigma points propagated through f
-    '''
-    n_dim = len(mean)
-    if noise_covariance2 is None:
-      noise_covariance2 = np.zeros((n_dim, n_dim))
-    mean = np.asarray(mean, dtype=float)
-
-    # calculate scaling factor for all off-center points
-    lamda = (alpha * alpha) * (n_dim + kappa) - n_dim
-    c = n_dim + lamda
-
-    # calculate weights
-    weights_mean = np.ones(2 * n_dim + 1)
-    weights_mean[0] = lamda / c
-    weights_mean[1:] = 0.5 / c
-    weights_cov = np.copy(weights_mean)
-    weights_cov[0] = lamda / c + (1 - alpha * alpha + beta)
-
-    # make sigma points
-    points = np.tile(mean[:, np.newaxis], (1, 2 * n_dim + 1))
-    points[:, 1:n_dim+1] = mean[:, np.newaxis] + sigma2 * np.sqrt(c)
-    points[:, n_dim+1:]  = mean[:, np.newaxis] - sigma2 * np.sqrt(c)
-
-    # propagate through function
-    transformed_points = [f(points[:, i]) for i in range(2 * n_dim + 1)]
-    transformed_points = np.vstack(transformed_points)
-
-    # calculate new mean
-    transformed_mean = transformed_points.T.dot(weights_mean)
-
-    # calculate new square root covariance
-    transformed_covariance2 = qr(np.hstack([
-      np.sqrt(weights_cov[1]) * (transformed_points[:, 1:] - transformed_mean[:, np.newaxis]),
-      noise_covariance2
-    ]))
-    transformed_covariance2 = cholupdate(
-        transformed_covariance2,
-        (transformed_points[:, 0] - transformed_mean[:, np.newaxis]).T,
-        weights_cov[0]
-    )
-    return (transformed_mean, transformed_covariance2, transformed_points)
-
-
 def cholupdate(A2, x, weight):
   '''Calculate chol(A + w x x')
 
@@ -290,8 +228,13 @@ def _unscented_correct(cross_sigma, mu_pred, sigma2_pred, obs_mu_pred,
     if not np.any(ma.getmask(z)):
         # calculate Kalman gain
         K = cross_sigma.dot(linalg.pinv(obs_sigma2_pred.T.dot(obs_sigma2_pred)))
-        #K = linalg.lstsq(cross_sigma.T, obs_sigma2_pred.T)[0]
-        #K = linalg.lstsq(K.T, obs_sigma2_pred)[0]
+
+        # # this would work in MATLAB
+        # K = (cross_sigma / obs_sigma2_pred.T) / obs_sigma2_pred
+
+        # # this works but doesn't seem to be stable
+        # K = linalg.lstsq(obs_sigma2_pred, cross_sigma.T)[0].T
+        # K = linalg.lstsq(obs_sigma2_pred.T, K.T)[0].T
 
         # correct mu, sigma
         mu_filt = mu_pred + K.dot(z - obs_mu_pred)
@@ -402,7 +345,7 @@ def _augmented_unscented_filter(mu_0, sigma_0, f, g, Q, R, Z):
             [sigma, Q, R]
         )
         (points_aug, weights_mu, weights_sigma) = (
-            _sigma_points(mu_aug, sigma_aug)
+            _sigma_points(mu_aug, linalg.cholesky(sigma_aug))
         )
         (points_state, points_trans, points_obs) = (
             _unaugment_points(points_aug,
@@ -413,19 +356,19 @@ def _augmented_unscented_filter(mu_0, sigma_0, f, g, Q, R, Z):
         # for P(x_t | z_{0:t-1})
         if t == 0:
             points_pred = points_state
-            (mu_pred, sigma_pred) = (
+            (mu_pred, sigma2_pred) = (
                 _unscented_moments(points_pred, weights_mu, weights_sigma)
             )
         else:
             f_t1 = _last_dims(f, t - 1, ndims=1)[0]
-            (points_pred, mu_pred, sigma_pred) = (
+            (points_pred, mu_pred, sigma2_pred) = (
                 _unscented_transform(f_t1, points_state, weights_mu,
-                                     weights_sigma, points_trans)
+                                     weights_sigma, points_noise=points_trans)
             )
 
         # Calculate E[z_t | z_{0:t-1}], Var(z_t | z_{0:t-1})
         g_t = _last_dims(g, t, ndims=1)[0]
-        (obs_points_pred, obs_mu_pred, obs_sigma_pred) = (
+        (obs_points_pred, obs_mu_pred, obs_sigma2_pred) = (
             _unscented_transform(g_t, points_pred, weights_mu, weights_sigma,
                                  points_obs)
         )
@@ -438,10 +381,11 @@ def _augmented_unscented_filter(mu_0, sigma_0, f, g, Q, R, Z):
         )
 
         # Calculate E[x_t | z_{0:t}], Var(x_t | z_{0:t})
-        (mu_filt[t], sigma_filt[t]) = (
-            _unscented_correct(sigma_pair, mu_pred, sigma_pred, obs_mu_pred,
-                               obs_sigma_pred, Z[t])
+        (mu_filt[t], sigma2_filt) = (
+            _unscented_correct(sigma_pair, mu_pred, sigma2_pred, obs_mu_pred,
+                               obs_sigma2_pred, Z[t])
         )
+        sigma_filt[t] = sigma2_filt.T.dot(sigma2_filt)
 
     return (mu_filt, sigma_filt)
 
@@ -490,7 +434,7 @@ def _augmented_unscented_smoother(mu_filt, sigma_filt, f, Q):
             [sigma, Q]
         )
         (points_aug, weights_mu, weights_sigma) = (
-            _sigma_points(mu_aug, sigma_aug)
+            _sigma_points(mu_aug, linalg.cholesky(sigma_aug))
         )
         (points_state, points_trans) = (
             _unaugment_points(points_aug, [n_dim_state, n_dim_state])
@@ -498,10 +442,11 @@ def _augmented_unscented_smoother(mu_filt, sigma_filt, f, Q):
 
         # compute E[x_{t+1} | z_{0:t}], Var(x_{t+1} | z_{0:t})
         f_t = _last_dims(f, t, ndims=1)[0]
-        (points_pred, mu_pred, sigma_pred) = (
+        (points_pred, mu_pred, sigma2_pred) = (
             _unscented_transform(f_t, points_state, weights_mu, weights_sigma,
-                                 points_trans)
+                                 points_noise=points_trans)
         )
+        sigma_pred = sigma2_pred.T.dot(sigma2_pred)
 
         # Calculate Cov(x_{t+1}, x_t | z_{0:t-1})
         sigma_pair = (
@@ -541,10 +486,13 @@ class UnscentedKalmanFilter():
     Notice that although the input noise to the state transition equation and
     the observation equation are both normally distributed, any non-linear
     transformation may be applied afterwards.  This allows for greater
-    generality, but at the expense of computational complexity.  The complexity
-    of :class:`UnscentedKalmanFilter.filter()` is :math:`O(T(2n+m)^3)`
-    where :math:`T` is the number of time steps, :math:`n` is the size of the
-    state space, and :math:`m` is the size of the observation space.
+    generality, but at the expense of computational complexity and numerical
+    stability.  The complexity of :class:`UnscentedKalmanFilter.filter()` is
+    :math:`O(T(2n+m)^3)` where :math:`T` is the number of time steps, :math:`n`
+    is the size of the state space, and :math:`m` is the size of the
+    observation space.  In addition, the :class:`AdditiveUnscentedKalmanFilter`
+    is actually implemented using the "Square Root Unscented Kalman Filter"
+    which protects the filter from numerical round-off errors.
 
     If your noise is simply additive, consider using the
     :class:`AdditiveUnscentedKalmanFilter`
