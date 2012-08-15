@@ -159,8 +159,8 @@ def test_cholupdate():
 
     R1 = linalg.cholesky(
         M
-        + np.sign(w) * np.sqrt(np.abs(w)) * np.outer(x[0], x[0])
-        + np.sign(w) * np.sqrt(np.abs(w)) * np.outer(x[1], x[1])
+        + np.sign(w) * np.abs(w) * np.outer(x[0], x[0])
+        + np.sign(w) * np.abs(w) * np.outer(x[1], x[1])
     )
 
     R2 = cholupdate(linalg.cholesky(M), x, w)

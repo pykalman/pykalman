@@ -3,8 +3,21 @@
 Inference for Non-Linear Gaussian Systems
 =========================================
 
-This module contains the Unscented Kalman Filter (Wan, van der Merwe 2000)
-for state estimation in systems with non-Gaussian noise and non-linear dynamics
+This module contains the Unscented Kalman Filter and Smoother for additive and
+non-additive noise models. These algorithms allow one to track targets through
+non-linear dynamics and observation models assuming approximately Gaussian
+noise.
+
+References
+----------
+
+* Sarkka, S. Unscented Rauch-Tung-Striebel Smoother. 2008.
+* Terejanu, G.A. Towards a Decision-Centric Framework for Uncertainty
+  Propagation and Data Assimilation. 2010.
+* Van Der Merwe, R. and Wan, E.A. The Square-Root Unscented Kalman Filter for
+  State and Parameter-Estimation. 2001.
+* Wan, E.A. and Van Der Merwe, R. The Unscented Kalman Filter for Nonlinear
+  Estimation. 2000.
 '''
 import numpy as np
 from numpy import ma
@@ -15,34 +28,68 @@ from .utils import array1d, array2d, check_random_state
 from .standard import _last_dims
 
 
-def cholupdate(A2, x, weight):
+def cholupdate(A2, X, weight):
   '''Calculate chol(A + w x x')
 
   Parameters
   ----------
   A2 : [n_dim, n_dim] array
       A = A2.T.dot(A2) for A positive definite, symmetric
-  x : [n_dim] or [n_vec, n_dim] array
-      vector(s) to be used for x.  If x has 2 dimensions, then each row will be
+  X : [n_dim] or [n_vec, n_dim] array
+      vector(s) to be used for x.  If X has 2 dimensions, then each row will be
       added in turn.
   weight : float
-      square of weight to be multiplied to each x x'. If negative, will use
+      weight to be multiplied to each x x'. If negative, will use
       sign(weight) * sqrt(abs(weight)) instead of sqrt(weight).
 
   Returns
   -------
   A2 : [n_dim, n_dim array]
       cholesky decomposition of updated matrix
+
+  Notes
+  -----
+
+  Code based on the following MATLAB snippet taken from Wikipedia on
+  August 14, 2012::
+
+      function [L] = cholupdate(L,x)
+          p = length(x);
+          x = x';
+          for k=1:p
+              r = sqrt(L(k,k)^2 + x(k)^2);
+              c = r / L(k, k);
+              s = x(k) / L(k, k);
+              L(k, k) = r;
+              L(k,k+1:p) = (L(k,k+1:p) + s*x(k+1:p)) / c;
+              x(k+1:p) = c*x(k+1:p) - s*L(k, k+1:p);
+          end
+      end
   '''
-  if len(x.shape) == 1:
-      x = x[np.newaxis,:]
-  n_vec, n_dim = x.shape
+  # make copies
+  X = X.copy()
+  A2 = A2.copy()
 
-  M = A2.T.dot(A2)
+  # standardize input shape
+  if len(X.shape) == 1:
+      X = X[np.newaxis,:]
+  n_vec, n_dim = X.shape
+
+  # take sign of weight into account
+  sign, weight = np.sign(weight), np.sqrt(np.abs(weight))
+  X = weight * X
+
   for i in range(n_vec):
-      M += np.sign(weight) * np.sqrt(np.abs(weight)) * np.outer(x[i], x[i])
-
-  return linalg.cholesky(M)
+      x = X[i, :]
+      for k in range(n_dim):
+          r_squared = A2[k, k]**2 + sign * x[k]**2
+          r = 0.0 if r_squared < 0 else np.sqrt(r_squared)
+          c = r / A2[k, k]
+          s = x[k] / A2[k, k]
+          A2[k, k] = r
+          A2[k, k+1:] = (A2[k, k+1:] + sign * s * x[k+1:]) / c
+          x[k+1:] = c * x[k+1:] - s * A2[k, k+1:]
+  return A2
 
 
 def qr(A):
@@ -226,15 +273,21 @@ def _unscented_correct(cross_sigma, mu_pred, sigma2_pred, obs_mu_pred,
     n_dim_obs = len(obs_mu_pred)
 
     if not np.any(ma.getmask(z)):
-        # calculate Kalman gain
-        K = cross_sigma.dot(linalg.pinv(obs_sigma2_pred.T.dot(obs_sigma2_pred)))
+        ##############################################
+        # Same as this, but more stable (supposedly) #
+        ##############################################
+        # K = cross_sigma.dot(
+        #     linalg.pinv(
+        #         obs_sigma2_pred.T.dot(obs_sigma2_pred)
+        #     )
+        # )
+        ##############################################
 
-        # # this would work in MATLAB
+        # equivalent to this MATLAB code
         # K = (cross_sigma / obs_sigma2_pred.T) / obs_sigma2_pred
-
-        # # this works but doesn't seem to be stable
-        # K = linalg.lstsq(obs_sigma2_pred, cross_sigma.T)[0].T
-        # K = linalg.lstsq(obs_sigma2_pred.T, K.T)[0].T
+        K = linalg.lstsq(obs_sigma2_pred, cross_sigma.T)[0]
+        K = linalg.lstsq(obs_sigma2_pred.T, K)[0]
+        K = K.T
 
         # correct mu, sigma
         mu_filt = mu_pred + K.dot(z - obs_mu_pred)
@@ -774,9 +827,18 @@ def _additive_unscented_smoother(mu_filt, sigma2_filt, f, Q):
         )
 
         # compute smoothed mean, covariance
-        smoother_gain = (
-            sigma_pair.dot(linalg.pinv(sigma2_pred.T.dot(sigma2_pred)))
-        )
+
+        #############################################
+        # Same as this, but more stable (supposedly)#
+        #############################################
+        # smoother_gain = (
+        #     sigma_pair.dot(linalg.pinv(sigma2_pred.T.dot(sigma2_pred)))
+        # )
+        #############################################
+        smoother_gain = linalg.lstsq(sigma2_pred.T, sigma_pair.T)[0]
+        smoother_gain = linalg.lstsq(sigma2_pred, smoother_gain)[0]
+        smoother_gain = smoother_gain.T
+
         mu_smooth[t] = (
             mu_filt[t]
             + smoother_gain
