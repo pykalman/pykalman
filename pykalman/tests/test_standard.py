@@ -13,6 +13,30 @@ from pykalman.datasets import load_robot
 data = load_robot()
 
 
+def test_kalman_filter():
+    kf = KalmanFilter(
+        data.transition_matrix,
+        data.observation_matrix,
+        data.transition_covariance,
+        data.observation_covariance,
+        data.transition_offsets,
+        data.observation_offset,
+        data.initial_state_mean,
+        data.initial_state_covariance)
+
+    (x_filt, V_filt) = kf.filter(X=data.observations)
+    assert_array_almost_equal(
+        x_filt[:500],
+        data.filtered_state_means[:500],
+        decimal=7
+    )
+    assert_array_almost_equal(
+        V_filt[:500],
+        data.filtered_state_covariances[:500],
+        decimal=7
+    )
+
+
 def test_kalman_sampling():
     kf = KalmanFilter(
         data.transition_matrix,
@@ -60,31 +84,7 @@ def test_kalman_filter_update():
     assert_array_almost_equal(V_filt, V_filt2)
 
 
-def test_kalman_filter():
-    kf = KalmanFilter(
-        data.transition_matrix,
-        data.observation_matrix,
-        data.transition_covariance,
-        data.observation_covariance,
-        data.transition_offsets,
-        data.observation_offset,
-        data.initial_state_mean,
-        data.initial_state_covariance)
-
-    (x_filt, V_filt) = kf.filter(X=data.observations)
-    assert_array_almost_equal(
-        x_filt[:500],
-        data.filtered_state_means[:500],
-        decimal=7
-    )
-    assert_array_almost_equal(
-        V_filt[:500],
-        data.filtered_state_covariances[:500],
-        decimal=7
-    )
-
-
-def test_kalman_predict():
+def test_kalman_smooth():
     kf = KalmanFilter(
         data.transition_matrix,
         data.observation_matrix,
@@ -103,7 +103,7 @@ def test_kalman_predict():
     )
 
 
-def test_kalman_fit():
+def test_kalman_em():
     # check against MATLAB dataset
     kf = KalmanFilter(
         data.transition_matrix,

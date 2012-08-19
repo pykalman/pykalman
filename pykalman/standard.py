@@ -80,6 +80,21 @@ def _determine_dimensionality(variables, default):
         return candidates[0]
 
 
+def _reconstruct_covariances(covariance2s):
+    '''Reconstruct covariance matrices given their cholesky factors'''
+    if len(covariance2s.shape) == 2:
+        covariance2s = covariance2s[np.newaxis, :, :]
+
+    T = covariance2s.shape[0]
+    covariances = np.zeros(covariance2s.shape)
+
+    for t in range(T):
+        M = covariance2s[t]
+        covariances[t] = M.dot(M.T)
+
+    return covariances
+
+
 def _last_dims(X, t, ndims=2):
     """Extract the final dimensions of `X`
 
@@ -172,9 +187,9 @@ def _loglikelihoods(observation_matrices, observation_offsets,
     return loglikelihoods
 
 
-def _filter_predict(transition_matrix, transition_covariance,
+def _filter_predict(transition_matrix, transition_covariance2,
                     transition_offset, current_state_mean,
-                    current_state_covariance):
+                    current_state_covariance2):
     r"""Calculate the mean and covariance of :math:`P(x_{t+1} | z_{0:t})`
 
     Using the mean and covariance of :math:`P(x_t | z_{0:t})`, calculate the
@@ -184,42 +199,56 @@ def _filter_predict(transition_matrix, transition_covariance,
     ----------
     transition_matrix : [n_dim_state, n_dim_state} array
         state transition matrix from time t to t+1
-    transition_covariance : [n_dim_state, n_dim_state] array
-        covariance matrix for state transition from time t to t+1
+    transition_covariance2 : [n_dim_state, n_dim_state] array
+        square root of the covariance matrix for state transition from time
+        t to t+1
     transition_offset : [n_dim_state] array
         offset for state transition from time t to t+1
     current_state_mean: [n_dim_state] array
         mean of state at time t given observations from times
         [0...t]
-    current_state_covariance: [n_dim_state, n_dim_state] array
-        covariance of state at time t given observations from times
-        [0...t]
+    current_state_covariance2: [n_dim_state, n_dim_state] array
+        square root of the covariance of state at time t given observations
+        from times [0...t]
 
     Returns
     -------
     predicted_state_mean : [n_dim_state] array
         mean of state at time t+1 given observations from times [0...t]
-    predicted_state_covariance : [n_dim_state, n_dim_state] array
-        covariance of state at time t+1 given observations from times
-        [0...t]
+    predicted_state_covariance2 : [n_dim_state, n_dim_state] array
+        square root of the covariance of state at time t+1 given observations
+        from times [0...t]
+
+    References
+    ----------
+    * Kaminski, Paul G. Square Root Filtering and Smoothing for Discrete
+      Processes. July 1971. Page 41.
     """
+    n_dim_state = len(current_state_mean)
+
+    # predict new mean
     predicted_state_mean = (
         np.dot(transition_matrix, current_state_mean)
         + transition_offset
     )
-    predicted_state_covariance = (
-        np.dot(transition_matrix,
-               np.dot(current_state_covariance,
-                      transition_matrix.T))
-        + transition_covariance
+
+    # predict new covariance
+    T, predicted_state_covariance2 = (
+        linalg.qr(np.hstack([
+            np.dot(transition_matrix, current_state_covariance2),
+            transition_covariance2
+        ]).T)
+    )
+    predicted_state_covariance2 = (
+        predicted_state_covariance2[:n_dim_state, :n_dim_state].T
     )
 
-    return (predicted_state_mean, predicted_state_covariance)
+    return (predicted_state_mean, predicted_state_covariance2)
 
 
-def _filter_correct(observation_matrix, observation_covariance,
+def _filter_correct(observation_matrix, observation_covariance2,
                     observation_offset, predicted_state_mean,
-                    predicted_state_covariance, observation):
+                    predicted_state_covariance2, observation):
     r"""Correct a predicted state with a Kalman Filter update
 
     Incorporate observation `observation` from time `t` to turn
@@ -229,16 +258,16 @@ def _filter_correct(observation_matrix, observation_covariance,
     ----------
     observation_matrix : [n_dim_obs, n_dim_state] array
         observation matrix for time t
-    observation_covariance : [n_dim_obs, n_dim_obs] array
-        covariance matrix for observation at time t
+    observation_covariance2 : [n_dim_obs, n_dim_obs] array
+        square root of the covariance matrix for observation at time t
     observation_offset : [n_dim_obs] array
         offset for observation at time t
     predicted_state_mean : [n_dim_state] array
         mean of state at time t given observations from times
         [0...t-1]
-    predicted_state_covariance : [n_dim_state, n_dim_state] array
-        covariance of state at time t given observations from times
-        [0...t-1]
+    predicted_state_covariance2 : [n_dim_state, n_dim_state] array
+        square root of the covariance of state at time t given observations
+        from times [0...t-1]
     observation : [n_dim_obs] array
         observation at time t.  If `observation` is a masked array and any of
         its values are masked, the observation will be ignored.
@@ -250,49 +279,65 @@ def _filter_correct(observation_matrix, observation_covariance,
     corrected_state_mean : [n_dim_state] array
         mean of state at time t given observations from times
         [0...t]
-    corrected_state_covariance : [n_dim_state, n_dim_state] array
-        covariance of state at time t given observations from times
-        [0...t]
+    corrected_state_covariance2 : [n_dim_state, n_dim_state] array
+        square root of the covariance of state at time t given observations
+        from times [0...t]
+
+    References
+    ----------
+    * Kaminski, Paul G. Square Root Filtering and Smoothing for Discrete
+      Processes. July 1971. Page 41.
     """
     if not np.any(np.ma.getmask(observation)):
+        # derive kalman gain
+        F = predicted_state_covariance2.T.dot(observation_matrix.T)
+        predicted_observation_covariance2 = linalg.cholesky(
+            F.T.dot(F)
+              + observation_covariance2.dot(observation_covariance2.T),
+            lower=True
+        )
+        predicted_observation_covariance2_inv = (
+            linalg.pinv(predicted_observation_covariance2)
+        )
+        kalman_gain = (
+            predicted_state_covariance2
+            .dot(F)
+            .dot(predicted_observation_covariance2_inv.T)
+            .dot(predicted_observation_covariance2_inv)
+        )
+
+        # correct square root of covariance matrix
+        corrected_state_covariance2 = (
+            predicted_state_covariance2
+            - kalman_gain
+              .dot(predicted_observation_covariance2)
+              .dot(linalg.pinv(
+                predicted_observation_covariance2
+                + observation_covariance2
+              ))
+              .dot(F.T)
+        )
+
+        # correct mean
         predicted_observation_mean = (
             np.dot(observation_matrix,
                    predicted_state_mean)
             + observation_offset
         )
-        predicted_observation_covariance = (
-            np.dot(observation_matrix,
-                   np.dot(predicted_state_covariance,
-                          observation_matrix.T))
-            + observation_covariance
-        )
-
-        kalman_gain = (
-            np.dot(predicted_state_covariance,
-                   np.dot(observation_matrix.T,
-                          linalg.pinv(predicted_observation_covariance)))
-        )
-
         corrected_state_mean = (
             predicted_state_mean
             + np.dot(kalman_gain, observation - predicted_observation_mean)
         )
-        corrected_state_covariance = (
-            predicted_state_covariance
-            - np.dot(kalman_gain,
-                     np.dot(observation_matrix,
-                            predicted_state_covariance))
-        )
     else:
-        n_dim_state = predicted_state_covariance.shape[0]
+        n_dim_state = predicted_state_covariance2.shape[0]
         n_dim_obs = observation_matrix.shape[0]
         kalman_gain = np.zeros((n_dim_state, n_dim_obs))
 
         corrected_state_mean = predicted_state_mean
-        corrected_state_covariance = predicted_state_covariance
+        corrected_state_covariance2 = predicted_state_covariance2
 
     return (kalman_gain, corrected_state_mean,
-            corrected_state_covariance)
+            corrected_state_covariance2)
 
 
 def _filter(transition_matrices, observation_matrices, transition_covariance,
@@ -353,50 +398,52 @@ def _filter(transition_matrices, observation_matrices, transition_covariance,
     n_dim_obs = observations.shape[1]
 
     predicted_state_means = np.zeros((n_timesteps, n_dim_state))
-    predicted_state_covariances = np.zeros(
+    predicted_state_covariance2s = np.zeros(
         (n_timesteps, n_dim_state, n_dim_state)
     )
     kalman_gains = np.zeros((n_timesteps, n_dim_state, n_dim_obs))
     filtered_state_means = np.zeros((n_timesteps, n_dim_state))
-    filtered_state_covariances = np.zeros(
+    filtered_state_covariance2s = np.zeros(
         (n_timesteps, n_dim_state, n_dim_state)
     )
+    transition_covariance2 = linalg.cholesky(transition_covariance, lower=True)
+    observation_covariance2 = linalg.cholesky(observation_covariance, lower=True)
+    initial_state_covariance2 = linalg.cholesky(initial_state_covariance, lower=True)
 
     for t in range(n_timesteps):
         if t == 0:
             predicted_state_means[t] = initial_state_mean
-            predicted_state_covariances[t] = initial_state_covariance
+            predicted_state_covariance2s[t] = initial_state_covariance2
         else:
             transition_matrix = _last_dims(transition_matrices, t - 1)
-            transition_covariance = _last_dims(transition_covariance, t - 1)
             transition_offset = _last_dims(transition_offsets, t - 1, ndims=1)
-            predicted_state_means[t], predicted_state_covariances[t] = (
+            predicted_state_means[t], predicted_state_covariance2s[t] = (
                 _filter_predict(
                     transition_matrix,
-                    transition_covariance,
+                    transition_covariance2,
                     transition_offset,
                     filtered_state_means[t - 1],
-                    filtered_state_covariances[t - 1]
+                    filtered_state_covariance2s[t - 1]
                 )
             )
 
         observation_matrix = _last_dims(observation_matrices, t)
-        observation_covariance = _last_dims(observation_covariance, t)
         observation_offset = _last_dims(observation_offsets, t, ndims=1)
         (kalman_gains[t], filtered_state_means[t],
-         filtered_state_covariances[t]) = (
-            _filter_correct(observation_matrix,
-                observation_covariance,
+         filtered_state_covariance2s[t]) = (
+            _filter_correct(
+                observation_matrix,
+                observation_covariance2,
                 observation_offset,
                 predicted_state_means[t],
-                predicted_state_covariances[t],
+                predicted_state_covariance2s[t],
                 observations[t]
             )
         )
 
-    return (predicted_state_means, predicted_state_covariances,
+    return (predicted_state_means, predicted_state_covariance2s,
             kalman_gains, filtered_state_means,
-            filtered_state_covariances)
+            filtered_state_covariance2s)
 
 
 def _smooth_update(transition_matrix, filtered_state_mean,
@@ -1148,7 +1195,7 @@ class KalmanFilter(object):
         )
 
         (_, _, _, filtered_state_means,
-         filtered_state_covariances) = (
+         filtered_state_covariance2s) = (
             _filter(
                 transition_matrices, observation_matrices,
                 transition_covariance, observation_covariance,
@@ -1157,6 +1204,12 @@ class KalmanFilter(object):
                 Z
             )
         )
+
+        filtered_state_covariances = np.zeros(filtered_state_covariance2s.shape)
+        for t in range(filtered_state_covariances.shape[0]):
+            S = filtered_state_covariance2s[t]
+            filtered_state_covariances[t] = S.dot(S.T)
+
         return (filtered_state_means, filtered_state_covariances)
 
     def filter_update(self, filtered_state_mean, filtered_state_covariance,
@@ -1251,20 +1304,33 @@ class KalmanFilter(object):
         else:
             observation = np.ma.asarray(observation)
 
-        predicted_state_mean, predicted_state_covariance = (
+        # turn covariance into cholesky factorizations
+        transition_covariance2 = linalg.cholesky(transition_covariance, lower=True)
+        observation_covariance2 = linalg.cholesky(observation_covariance, lower=True)
+        filtered_state_covariance2 = linalg.cholesky(filtered_state_covariance, lower=True)
+
+        # predict
+        predicted_state_mean, predicted_state_covariance2 = (
             _filter_predict(
-                transition_matrix, transition_covariance,
+                transition_matrix, transition_covariance2,
                 transition_offset, filtered_state_mean,
-                filtered_state_covariance
+                filtered_state_covariance2
             )
         )
+
+        # correct
         (_, next_filtered_state_mean,
-         next_filtered_state_covariance) = (
+         next_filtered_state_covariance2) = (
             _filter_correct(
-                observation_matrix, observation_covariance,
+                observation_matrix, observation_covariance2,
                 observation_offset, predicted_state_mean,
-                predicted_state_covariance, observation
+                predicted_state_covariance2, observation
             )
+        )
+
+        # reconstruct actual covariance
+        next_filtered_state_covariance = (
+            _reconstruct_covariances(next_filtered_state_covariance2)
         )
 
         return (next_filtered_state_mean, next_filtered_state_covariance)
@@ -1300,8 +1366,9 @@ class KalmanFilter(object):
             self._initialize_parameters()
         )
 
-        (predicted_state_means, predicted_state_covariances,
-         _, filtered_state_means, filtered_state_covariances) = (
+        # run filter
+        (predicted_state_means, predicted_state_covariance2s,
+         _, filtered_state_means, filtered_state_covariance2s) = (
             _filter(
                 transition_matrices, observation_matrices,
                 transition_covariance, observation_covariance,
@@ -1309,6 +1376,15 @@ class KalmanFilter(object):
                 initial_state_mean, initial_state_covariance, Z
             )
         )
+
+        # construct actual covariance matrices
+        predicted_state_covariances = (
+            _reconstruct_covariances(predicted_state_covariance2s)
+        )
+        filtered_state_covariances = (
+            _reconstruct_covariances(filtered_state_covariance2s)
+        )
+
         (smoothed_state_means, smoothed_state_covariances) = (
             _smooth(
                 transition_matrices, filtered_state_means,
@@ -1379,9 +1455,10 @@ class KalmanFilter(object):
 
         # Actual EM iterations
         for i in range(n_iter):
-            (predicted_state_means, predicted_state_covariances,
+            # run filter
+            (predicted_state_means, predicted_state_covariance2s,
              kalman_gains, filtered_state_means,
-             filtered_state_covariances) = (
+             filtered_state_covariance2s) = (
                 _filter(
                     self.transition_matrices, self.observation_matrices,
                     self.transition_covariance, self.observation_covariance,
@@ -1390,6 +1467,16 @@ class KalmanFilter(object):
                     Z
                 )
             )
+
+            # reconstruct covariances
+            filtered_state_covariances = (
+                _reconstruct_covariances(filtered_state_covariance2s)
+            )
+            predicted_state_covariances = (
+                _reconstruct_covariances(predicted_state_covariance2s)
+            )
+
+            # run smoother
             (smoothed_state_means, smoothed_state_covariances,
              kalman_smoothing_gains) = (
                 _smooth(
@@ -1398,6 +1485,8 @@ class KalmanFilter(object):
                     predicted_state_covariances
                 )
             )
+
+            # calculate pairwise covariances
             sigma_pair_smooth = _smooth_pair(
                 smoothed_state_covariances,
                 kalman_smoothing_gains
@@ -1437,9 +1526,9 @@ class KalmanFilter(object):
         )
 
         # apply the Kalman Filter
-        (predicted_state_means, predicted_state_covariances,
+        (predicted_state_means, predicted_state_covariance2s,
          kalman_gains, filtered_state_means,
-         filtered_state_covariances) = (
+         filtered_state_covariance2s) = (
             _filter(
                 transition_matrices, observation_matrices,
                 transition_covariance, observation_covariance,
@@ -1450,6 +1539,9 @@ class KalmanFilter(object):
         )
 
         # get likelihoods for each time step
+        predicted_state_covariances = (
+            _reconstruct_covariances(predicted_state_covariance2s)
+        )
         loglikelihoods = _loglikelihoods(
           observation_matrices, observation_offsets, observation_covariance,
           predicted_state_means, predicted_state_covariances, Z
