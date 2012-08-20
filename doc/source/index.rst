@@ -24,7 +24,10 @@ Also included is support for missing measurements::
 
 And for the non-linear dynamics via the :class:`UnscentedKalmanFilter`::
 
-    >>> I'll fill this in someday...
+    >>> from pykalman import UnscentedKalmanFilter
+    >>> ukf = UnscentedKalmanFilter(lambda x, w: x + np.sin(w), lambda x, v: x + v, Q=1.0, R=0.1, mu_0=0.5, sigma_0=1.0)
+    >>> (filtered_state_means, filtered_state_covariances) = ukf.filter([[0], [1], [2]])
+    >>> (smoothed_state_means, smoothed_state_covariances) = ukf.smooth([[0], [1], [2]])
 
 
 ------------
@@ -55,11 +58,17 @@ Alternatively, you can get the latest and greatest from `github
     $ sudo python setup.py install
 
 
-------------
-User's Guide
-------------
+--------------------------
+Kalman Filter User's Guide
+--------------------------
 
-.. include:: users_guide.rst
+.. include:: kf_users_guide.rst
+
+------------------------------------
+Unscented Kalman Filter User's Guide
+------------------------------------
+
+.. include:: ukf_users_guide.rst
 
 ---------------
 Class Reference

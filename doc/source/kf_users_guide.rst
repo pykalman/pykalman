@@ -44,7 +44,7 @@ beforehand.  The :class:`KalmanFilter` class however can learn parameters using
 states can be predicted using :func:`KalmanFilter.smooth`::
 
     >>> measurements = [[1,0], [0,0], [0,1]]
-    >>> kf.em(measurements).smooth([[2,0], [2,1], [2,2]])
+    >>> kf.em(measurements).smooth([[2,0], [2,1], [2,2]])[0]
     array([[ 0.85819709],
            [ 1.77811829],
            [ 2.19537816]])
@@ -119,15 +119,21 @@ equation::
     position[t+dt] = position[t] + velocity[t] dt + 0.5 acceleration[t] dt^2
 
 Taking the zeroth, first, and second derivative of the above equation with
-respect to `dt` gives the rows of transition matrix. We may also set the
-transition offset to zero for the position and velocity components and -9.8
-for the acceleration component in order to account for gravity's pull.
+respect to `dt` gives the rows of transition matrix::
+
+    A = np.array([[1, t, 0.5 * (t**2)],
+                  [0, 1,            t],
+                  [0, 0,            1]])
+
+We may also set the transition offset to zero for the position and velocity
+components and -9.8 for the acceleration component in order to account for
+gravity's pull.
 
 It is often very difficult to guess what appropriate values are for for the
 transition and observation covariance, so it is common to use some constant
 multiplied by the identity matrix. Increasing this constant is equivalent to
 saying you believe there is more noise in the system. This constant is the
-amount of variance you expect to see along each dimensiona during state
+amount of variance you expect to see along each dimension during state
 transitions and measurements, respectively.
 
 
