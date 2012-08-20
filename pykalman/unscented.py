@@ -15,7 +15,7 @@ from .utils import array1d, array2d, check_random_state
 from .standard import _last_dims
 
 
-def _unscented_moments(points, weights_mu, weights_sigma):
+def _unscented_moments(points, weights_mu, weights_sigma, sigma_noise=None):
     '''Calculate the weighted mean and covariance of `points`
 
     Parameters
@@ -26,6 +26,8 @@ def _unscented_moments(points, weights_mu, weights_sigma):
         weights used to calculate the mean
     weights_sigma : [2 * n_dim_state + 1] array
         weights used to calcualte the covariance
+    sigma_noise : [n_dim_state, n_dim_state] array
+        additive noise covariance matrix
 
     Returns
     -------
@@ -37,6 +39,8 @@ def _unscented_moments(points, weights_mu, weights_sigma):
     mu = points.T.dot(weights_mu)
     points_diff = points.T - mu[:, np.newaxis]
     sigma = points_diff.dot(np.diag(weights_sigma)).dot(points_diff.T)
+    if sigma_noise is not None:
+        sigma = sigma + sigma_noise
     return (mu.ravel(), sigma)
 
 
@@ -96,7 +100,7 @@ def _sigma_points(mu, sigma, alpha=1e-3, beta=2.0, kappa=0.0):
 
 
 def _unscented_transform(f, points, weights_mean, weights_cov,
-                         points_noise=None):
+                         points_noise=None, sigma_noise=None):
     '''Apply the Unscented Transform.
 
     Parameters
@@ -111,6 +115,8 @@ def _unscented_transform(f, points, weights_mean, weights_cov,
         weights used to calculate empirical covariance
     points_noise : [n_points, n_dim_3] array
         points representing noise to pass through `f`, if any.
+    sigma_noise : [n_dim_2, n_dim_2] array
+        covariance matrix for additive noise
 
     Returns
     =======
@@ -134,7 +140,7 @@ def _unscented_transform(f, points, weights_mean, weights_cov,
 
     # calculate approximate mean, covariance
     (mu_pred, sigma_pred) = _unscented_moments(
-        points_pred, weights_mean, weights_cov)
+        points_pred, weights_mean, weights_cov, sigma_noise)
 
     return (points_pred, mu_pred, sigma_pred)
 
@@ -614,18 +620,18 @@ def _additive_unscented_filter(mu_0, sigma_0, f, g, Q, R, Z):
             f_t1 = _last_dims(f, t - 1, ndims=1)[0]
             (_, mu_pred, sigma_pred) = (
                 _unscented_transform(f_t1, points_state,
-                                     weights_mu, weights_sigma)
+                                     weights_mu, weights_sigma,
+                                     sigma_noise=Q)
             )
-            sigma_pred += Q
             points_pred = _sigma_points(mu_pred, sigma_pred)[0]
 
         # Calculate E[z_t | z_{0:t-1}], Var(z_t | z_{0:t-1})
         g_t = _last_dims(g, t, ndims=1)[0]
         (obs_points_pred, obs_mu_pred, obs_sigma_pred) = (
             _unscented_transform(g_t, points_pred,
-                                 weights_mu, weights_sigma)
+                                 weights_mu, weights_sigma,
+                                 sigma_noise=R)
         )
-        obs_sigma_pred += R
 
         # Calculate Cov(x_t, z_t | z_{0:t-1})
         sigma_pair = (
@@ -689,8 +695,8 @@ def _additive_unscented_smoother(mu_filt, sigma_filt, f, Q):
         # compute E[x_{t+1} | z_{0:t}], Var(x_{t+1} | z_{0:t})
         f_t = _last_dims(f, t, ndims=1)[0]
         (points_pred, mu_pred, sigma_pred) = (
-            _unscented_transform(f_t, points_state, weights_mu, weights_sigma,
-                                 points_trans)
+            _unscented_transform(f_t, points_state, weights_mu,
+                                 weights_sigma, sigma_noise=Q)
         )
 
         # Calculate Cov(x_{t+1}, x_t | z_{0:t-1})
