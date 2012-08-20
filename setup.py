@@ -8,8 +8,8 @@ setup(
     description = ('An implementation of the Kalman Filter, Kalman ' +
       'Smoother, and EM algorithm in Python'),
     license = 'BSD',
-    keywords = 'kalman filter smoothing em hmm tracking',
-    url = 'pykalman.github.com',
+    keywords = 'kalman filter smoothing em hmm tracking unscented ukf kf',
+    url = 'http://pykalman.github.com',
     packages = find_packages(),
     classifiers = [
       'Development Status :: 4 - Beta',
