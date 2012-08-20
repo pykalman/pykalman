@@ -32,23 +32,28 @@ Like :class:`KalmanFilter`, two methods are provided in
 At this point no algorithms have been implemented for inferring parameters, so
 they must be specified by hand at instantiation.
 
-In order to apply these algorithms, one must specify,
+In order to apply these algorithms, one must specify a subset of the following,
 
-    +-----------------+--------------------------------+
-    | Variable Name   | Interpretation                 |
-    +-----------------+--------------------------------+
-    | :attr:`f`       | state transition function(s)   |
-    +-----------------+--------------------------------+
-    | :attr:`g`       | observation function(s)        |
-    +-----------------+--------------------------------+
-    | :attr:`Q`       | state transition covariance    |
-    +-----------------+--------------------------------+
-    | :attr:`R`       | observation covariance         |
-    +-----------------+--------------------------------+
-    | :attr:`mu_0`    | initial state mean             |
-    +-----------------+--------------------------------+
-    | :attr:`sigma_0` | initial state covariance       |
-    +-----------------+--------------------------------+
+    +-----------------+--------------------------------+---------------------+
+    | Variable Name   | Interpretation                 | Default             |
+    +-----------------+--------------------------------+---------------------+
+    | :attr:`f`       | state transition function(s)   | state plus noise    |
+    +-----------------+--------------------------------+---------------------+
+    | :attr:`g`       | observation function(s)        | state plus noise    |
+    +-----------------+--------------------------------+---------------------+
+    | :attr:`Q`       | state transition covariance    | identity            |
+    +-----------------+--------------------------------+---------------------+
+    | :attr:`R`       | observation covariance         | identity            |
+    +-----------------+--------------------------------+---------------------+
+    | :attr:`mu_0`    | initial state mean             | zero                |
+    +-----------------+--------------------------------+---------------------+
+    | :attr:`sigma_0` | initial state covariance       | identity            |
+    +-----------------+--------------------------------+---------------------+
+
+If parameters are left unspecified, they will be replaced by their defaults.
+One also has the option of simply specifying :attr:`n_dim_state` or
+:attr:`n_dim_obs` if the size of the state or observation space cannot be
+inferred directly.
 
 The state transition function and observation function have replaced the
 transition matrix/offset and observation matrix/offset from the original
@@ -74,8 +79,8 @@ estimated state and covariance matrices over the hidden state::
     >>> def g(state, noise):
     ...     return state + np.cos(noise)
     ...
-    >>> ukf = UnscentedKalmanFilter(f, g, Q=1.0, R=0.1, mu_0=0.0, sigma_0=1.0)
-    >>> ukf.smooth([[0.0], [1.0], [2.0]])[0]
+    >>> ukf = UnscentedKalmanFilter(f, g, R=0.1)
+    >>> ukf.smooth([0, 1, 2])[0]
     array([[-0.94034641],
            [ 0.05002316],
            [ 1.04502498]])
@@ -116,7 +121,7 @@ potentially suffer from collapse of the covariance matrix to zero.
 Algorithmically, this means that the UnscentedKalmanFilter is one hundred
 percent sure of the state and that no noise is left in the system. In order to
 avoid this, one must ensure that even for small amounts of noise, :attr:`f` and
-:attr:`g` must output different values for the same current state.
+:attr:`g` output different values for the same current state.
 
 
 Choosing Parameters

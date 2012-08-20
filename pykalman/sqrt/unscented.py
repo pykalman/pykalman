@@ -24,6 +24,7 @@ from scipy import linalg
 from ..utils import array1d, array2d, check_random_state
 
 from ..standard import _last_dims
+from ..unscented import AdditiveUnscentedKalmanFilter as AUKF
 
 
 def cholupdate(A2, X, weight):
@@ -473,7 +474,7 @@ def _additive_unscented_smoother(mu_filt, sigma2_filt, f, Q):
     return (mu_smooth, sigma2_smooth)
 
 
-class AdditiveUnscentedKalmanFilter():
+class AdditiveUnscentedKalmanFilter(AUKF):
     r'''Implements the Unscented Kalman Filter with additive noise.
     Observations are assumed to be generated from the following process,
 
@@ -505,60 +506,15 @@ class AdditiveUnscentedKalmanFilter():
         mean of initial state distribution
     sigma_0 : [n_dim_state, n_dim_state] array
         covariance of initial state distribution
+    n_dim_state: optional, integer
+        the dimensionality of the state space. Only meaningful when you do not
+        specify initial values for `Q`, or `mu_0`, `sigma_0`.
+    n_dim_obs: optional, integer
+        the dimensionality of the observation space. Only meaningful when you
+        do not specify initial values for `R`.
     random_state : optional, int or RandomState
         seed for random sample generation
     '''
-    def __init__(self, f, g, Q, R, mu_0, sigma_0, random_state=None):
-        self.f = array1d(f)
-        self.g = array1d(g)
-        self.Q = array2d(Q)
-        self.R = array2d(R)
-        self.mu_0 = array1d(mu_0)
-        self.sigma_0 = array2d(sigma_0)
-        self.random_state = random_state
-
-    def sample(self, T, x_0=None):
-        '''Sample from model defined by the Unscented Kalman Filter
-
-        Parameters
-        ----------
-        T : int
-            number of time steps
-        x_0 : optional, [n_dim_state] array
-            initial state.  If unspecified, will be sampled from initial state
-            distribution.
-        '''
-        n_dim_state = self.Q.shape[-1]
-        n_dim_obs = self.R.shape[-1]
-
-        # logic for instantiating rng
-        rng = check_random_state(self.random_state)
-
-        # logic for selecting initial state
-        if x_0 is None:
-            x_0 = rng.multivariate_normal(self.mu_0, self.sigma_0)
-
-        # logic for generating samples
-        x = np.zeros((T, n_dim_state))
-        z = np.zeros((T, n_dim_obs))
-        for t in range(T):
-            if t == 0:
-                x[0] = x_0
-            else:
-                f_t1 = _last_dims(self.f, t - 1, ndims=1)[0]
-                Q_t1 = self.Q
-                e_t1 = rng.multivariate_normal(np.zeros(n_dim_state),
-                                               Q_t1.newbyteorder('='))
-                x[t] = f_t1(x[t - 1]) + e_t1
-
-            g_t = _last_dims(self.g, t, ndims=1)[0]
-            R_t = self.R
-            e_t2 = rng.multivariate_normal(np.zeros(n_dim_obs),
-                                           R_t.newbyteorder('='))
-            z[t] = g_t(x[t]) + e_t2
-
-        return (x, ma.asarray(z))
-
     def filter(self, Z):
         '''Run Unscented Kalman Filter
 
@@ -578,13 +534,16 @@ class AdditiveUnscentedKalmanFilter():
             sigma_filt[t] = covariance of state distribution at time t given
             observations from times [0, t]
         '''
-        Z = ma.asarray(Z)
+        Z = self._parse_observations(Z)
+
+        (f, g, Q, R, mu_0, sigma_0) = self._initialize_parameters()
+
         T = Z.shape[0]
 
         # run square root filter
         (mu_filt, sigma2_filt) = _additive_unscented_filter(
-            self.mu_0, self.sigma_0, self.f,
-            self.g, self.Q, self.R, Z
+            mu_0, sigma_0, f,
+            g, Q, R, Z
         )
 
         # reconstruct covariance matrices
@@ -613,16 +572,19 @@ class AdditiveUnscentedKalmanFilter():
             sigma_filt[t] = covariance of state distribution at time t given
             observations from times [0, T-1]
         '''
-        Z = ma.asarray(Z)
+        Z = self._parse_observations(Z)
+
+        (f, g, Q, R, mu_0, sigma_0) = self._initialize_parameters()
+
         T = Z.shape[0]
 
         # run filter, then smoother
         (mu_filt, sigma2_filt) = _additive_unscented_filter(
-            self.mu_0, self.sigma_0, self.f,
-            self.g, self.Q, self.R, Z
+            mu_0, sigma_0, f,
+            g, Q, R, Z
         )
         (mu_smooth, sigma2_smooth) = _additive_unscented_smoother(
-            mu_filt, sigma2_filt, self.f, self.Q
+            mu_filt, sigma2_filt, f, Q
         )
 
         # reconstruction covariance matrices
