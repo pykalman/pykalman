@@ -1,7 +1,9 @@
-Kalman Filters for Python
-=========================
+======================================
+[pykalman](http://pykalman.github.com)
+======================================
 
-Welcome to `pykalman`, the dead-simple Kalman Filter, Kalman Smoother, and EM library for Python:
+Welcome to [pykalman](http://pykalman.github.com), the dead-simple Kalman
+Filter, Kalman Smoother, and EM library for Python::
 
     >>> from pykalman import KalmanFilter
     >>> import numpy as np
@@ -11,7 +13,7 @@ Welcome to `pykalman`, the dead-simple Kalman Filter, Kalman Smoother, and EM li
     >>> (filtered_state_means, filtered_state_covariances) = kf.filter(measurements)
     >>> (smoothed_state_means, smoothed_state_covariances) = kf.smooth(measurements)
 
-Also included is support for missing measurements:
+Also included is support for missing measurements::
 
     >>> from numpy import ma
     >>> measurements = ma.asarray(measurements)
@@ -20,26 +22,45 @@ Also included is support for missing measurements:
     >>> (filtered_state_means, filtered_state_covariances) = kf.filter(measurements)
     >>> (smoothed_state_means, smoothed_state_covariances) = kf.smooth(measurements)
 
-And for the non-linear dynamics via the `UnscentedKalmanFilter`
+And for the non-linear dynamics via the :class:`UnscentedKalmanFilter`::
+
+    >>> from pykalman import UnscentedKalmanFilter
+    >>> ukf = UnscentedKalmanFilter(lambda x, w: x + np.sin(w), lambda x, v: x + v, transition_covariance=0.1)
+    >>> (filtered_state_means, filtered_state_covariances) = ukf.filter([0, 1, 2])
+    >>> (smoothed_state_means, smoothed_state_covariances) = ukf.smooth([0, 1, 2])
 
 
+------------
 Installation
-============
+------------
 
-`pykalman` depends on the following libraries
+For a quick installation::
 
-* numpy     (for core functionality)
-* scipy     (for core functionality)
-* Sphinx    (for generating documentation)
-* numpydoc  (for generating documentation)
-* nose      (for running tests)
+    $ easy_install pykalman
 
-All of these and `pykalman` can be installed via `easy_install`:
+`pykalman` depends on the following modules,
+
+* `numpy`     (for core functionality)
+* `scipy`     (for core functionality)
+* `Sphinx`    (for generating documentation)
+* `numpydoc`  (for generating documentation)
+* `nose`      (for running tests)
+
+All of these and :mod:`pykalman` can be installed using ``easy_install``::
 
     $ easy_install numpy scipy Sphinx numpydoc nose pykalman
 
+Alternatively, you can get the latest and greatest from
+[github](https://github.com/pykalman/pykalman)::
 
+    $ git clone git@github.com:pykalman/pykalman.git pykalman
+    $ cd pykalman
+    $ sudo python setup.py install
+
+
+--------
 Examples
-========
+--------
 
-Examples of all of `pykalman`'s functionality can be found in the scripts in the examples/ folder.
+Examples of all of `pykalman`'s functionality can be found in the scripts in
+the `examples/` folder.

@@ -34,21 +34,21 @@ they must be specified by hand at instantiation.
 
 In order to apply these algorithms, one must specify a subset of the following,
 
-    +-----------------+--------------------------------+---------------------+
-    | Variable Name   | Interpretation                 | Default             |
-    +-----------------+--------------------------------+---------------------+
-    | :attr:`f`       | state transition function(s)   | state plus noise    |
-    +-----------------+--------------------------------+---------------------+
-    | :attr:`g`       | observation function(s)        | state plus noise    |
-    +-----------------+--------------------------------+---------------------+
-    | :attr:`Q`       | state transition covariance    | identity            |
-    +-----------------+--------------------------------+---------------------+
-    | :attr:`R`       | observation covariance         | identity            |
-    +-----------------+--------------------------------+---------------------+
-    | :attr:`mu_0`    | initial state mean             | zero                |
-    +-----------------+--------------------------------+---------------------+
-    | :attr:`sigma_0` | initial state covariance       | identity            |
-    +-----------------+--------------------------------+---------------------+
+    +---------------------------------------+--------------------------------+---------------------+
+    | Variable Name                         | Mathematical Notation          | Default             |
+    +---------------------------------------+--------------------------------+---------------------+
+    | :attr:`transition_functions`          | :math:`f_t`                    | state plus noise    |
+    +---------------------------------------+--------------------------------+---------------------+
+    | :attr:`observation_functions`         | :math:`g_t`                    | state plus noise    |
+    +---------------------------------------+--------------------------------+---------------------+
+    | :attr:`transition_covariance`         | :math:`Q`                      | identity            |
+    +---------------------------------------+--------------------------------+---------------------+
+    | :attr:`observation_covariance`        | :math:`R`                      | identity            |
+    +---------------------------------------+--------------------------------+---------------------+
+    | :attr:`initial_state_mean`            | :math:`\mu_0`                  | zero                |
+    +---------------------------------------+--------------------------------+---------------------+
+    | :attr:`initial_state_covariance`      | :math:`\Sigma_0`               | identity            |
+    +---------------------------------------+--------------------------------+---------------------+
 
 If parameters are left unspecified, they will be replaced by their defaults.
 One also has the option of simply specifying :attr:`n_dim_state` or
@@ -86,8 +86,9 @@ estimated state and covariance matrices over the hidden state::
            [ 1.04502498]])
 
 If the :class:`UnscentedKalmanFilter` is instantiated with an array of
-functions for :attr:`f` or :attr:`g`, then the function is assumed to vary with
-time. Currently there is no support for time-varying covariance matrices.
+functions for :attr:`transition_functions` or :attr:`observation_functions`,
+then the function is assumed to vary with time. Currently there is no support
+for time-varying covariance matrices.
 
 
 Which Unscented Kalman Filter is for Me?
@@ -97,7 +98,7 @@ Though only :class:`UnscentedKalmanFilter` was mentioned in the previous
 section, there exists another class specifically designed for the case when
 noise is additive, :class:`AdditiveUnscentedKalmanFilter`. While more
 restrictive, this class offers reduced computational complexity
-(:math:`O(Tn^3)` vs. math:`O(T(2n+m)^3)` for state space with dimensionality
+(:math:`O(Tn^3)` vs. :math:`O(T(2n+m)^3)` for state space with dimensionality
 :math:`n`, observation space with dimensionality :math:`m`) and better
 numerical stability. When at all possible, the
 :class:`AdditiveUnscentedKalmanFilter` should be preferred to its counterpart.
@@ -120,8 +121,9 @@ Finally, users should note that the :class:`UnscentedKalmanFilter` can
 potentially suffer from collapse of the covariance matrix to zero.
 Algorithmically, this means that the UnscentedKalmanFilter is one hundred
 percent sure of the state and that no noise is left in the system. In order to
-avoid this, one must ensure that even for small amounts of noise, :attr:`f` and
-:attr:`g` output different values for the same current state.
+avoid this, one must ensure that even for small amounts of noise,
+:attr:`transition_functions` and :attr:`observation_functions` output different
+values for the same current state.
 
 
 Choosing Parameters
@@ -140,23 +142,23 @@ Unscented Kalman Filter (approximately) solves,
     measurements = np.zeros((n_timesteps, n_dim_obs))
     for t in range(n_timesteps-1):
        if t == 0:
-          states[t] = norm.rvs(mu_0, np.sqrt(sigma_0))
+          states[t] = norm.rvs(initial_state_mean, np.sqrt(initial_state_covariance))
           measurements[t] = (
               observation_function(
                   states[t],
-                  norm.rvs(0, np.sqrt(R))
+                  norm.rvs(0, np.sqrt(observation_covariance))
               )
           )
       states[t+1] = (
           transition_function(
               states[t],
-              norm.rvs(0, np.sqrt(Q))
+              norm.rvs(0, np.sqrt(transition_covariance))
           )
       )
       measurements[t+1] = (
           observation_function(
               states[t+1],
-              norm.rvs(0, np.sqrt(R))
+              norm.rvs(0, np.sqrt(observation_covariance))
           )
       )
 

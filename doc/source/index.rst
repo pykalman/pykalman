@@ -25,7 +25,7 @@ Also included is support for missing measurements::
 And for the non-linear dynamics via the :class:`UnscentedKalmanFilter`::
 
     >>> from pykalman import UnscentedKalmanFilter
-    >>> ukf = UnscentedKalmanFilter(lambda x, w: x + np.sin(w), lambda x, v: x + v, R=0.1)
+    >>> ukf = UnscentedKalmanFilter(lambda x, w: x + np.sin(w), lambda x, v: x + v, observation_covariance=0.1)
     >>> (filtered_state_means, filtered_state_covariances) = ukf.filter([0, 1, 2])
     >>> (smoothed_state_means, smoothed_state_covariances) = ukf.smooth([0, 1, 2])
 

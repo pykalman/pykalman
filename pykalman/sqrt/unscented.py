@@ -480,10 +480,10 @@ class AdditiveUnscentedKalmanFilter(AUKF):
 
     .. math::
 
-        v_t       &\sim \text{Normal}(0, Q)     \\
-        w_t       &\sim \text{Normal}(0, R)     \\
-        x_{t+1}   &= f_t(x_t) + v_t             \\
-        z_{t}     &= g_t(x_t) + w_t
+        x_0       &\sim \text{Normal}(\mu_0, \Sigma_0)  \\
+        x_{t+1}   &=    f_t(x_t) + \text{Normal}(0, Q)  \\
+        z_{t}     &=    g_t(x_t) + \text{Normal}(0, R)
+
 
     While less general the general-noise Unscented Kalman Filter, the Additive
     version is more computationally efficient with complexity :math:`O(Tn^3)`
@@ -492,26 +492,28 @@ class AdditiveUnscentedKalmanFilter(AUKF):
 
     Parameters
     ----------
-    f : function or [T-1] array of functions
-        f[t] is a function of the state at time t and produces the state at
-        time t+1
-    g : function or [T] array of functions
-        g[t] is a function of the state at time t and produces the observation
-        at time t
-    Q : [n_dim_state, n_dim_state] array
-        transition noise covariance matrix
-    R : [n_dim_obs, n_dim_obs] array
-        observation noise covariance matrix
-    mu_0 : [n_dim_state] array
-        mean of initial state distribution
-    sigma_0 : [n_dim_state, n_dim_state] array
-        covariance of initial state distribution
+    transition_functions : function or [n_timesteps-1] array of functions
+        transition_functions[t] is a function of the state at time t and
+        produces the state at time t+1. Also known as :math:`f_t`.
+    observation_functions : function or [n_timesteps] array of functions
+        observation_functions[t] is a function of the state at time t and
+        produces the observation at time t. Also known as :math:`g_t`.
+    transition_covariance : [n_dim_state, n_dim_state] array
+        transition noise covariance matrix. Also known as :math:`Q`.
+    observation_covariance : [n_dim_obs, n_dim_obs] array
+        observation noise covariance matrix. Also known as :math:`R`.
+    initial_state_mean : [n_dim_state] array
+        mean of initial state distribution. Also known as :math:`\mu_0`.
+    initial_state_covariance : [n_dim_state, n_dim_state] array
+        covariance of initial state distribution. Also known as
+        :math:`\Sigma_0`.
     n_dim_state: optional, integer
         the dimensionality of the state space. Only meaningful when you do not
-        specify initial values for `Q`, or `mu_0`, `sigma_0`.
+        specify initial values for `transition_covariance`, or
+        `initial_state_mean`, `initial_state_covariance`.
     n_dim_obs: optional, integer
         the dimensionality of the observation space. Only meaningful when you
-        do not specify initial values for `R`.
+        do not specify initial values for `observation_covariance`.
     random_state : optional, int or RandomState
         seed for random sample generation
     '''
@@ -520,76 +522,97 @@ class AdditiveUnscentedKalmanFilter(AUKF):
 
         Parameters
         ----------
-        Z : [T, n_dim_state] array
+        Z : [n_timesteps, n_dim_state] array
             Z[t] = observation at time t.  If Z is a masked array and any of
             Z[t]'s elements are masked, the observation is assumed missing and
             ignored.
 
         Returns
         -------
-        mu_filt : [T, n_dim_state] array
-            mu_filt[t] = mean of state distribution at time t given
-            observations from times [0, t]
-        sigma_filt : [T, n_dim_state, n_dim_state] array
-            sigma_filt[t] = covariance of state distribution at time t given
-            observations from times [0, t]
+        filtered_state_means : [n_timesteps, n_dim_state] array
+            filtered_state_means[t] = mean of state distribution at time t
+            given observations from times [0, t]
+        filtered_state_covariances : [n_timesteps, n_dim_state, n_dim_state] array
+            filtered_state_covariances[t] = covariance of state distribution at
+            time t given observations from times [0, t]
         '''
         Z = self._parse_observations(Z)
 
-        (f, g, Q, R, mu_0, sigma_0) = self._initialize_parameters()
+        (transition_functions, observation_functions,
+         transition_covariance, observation_covariance,
+         initial_state_mean, initial_state_covariance) = (
+            self._initialize_parameters()
+        )
 
-        T = Z.shape[0]
+        n_timesteps = Z.shape[0]
 
         # run square root filter
-        (mu_filt, sigma2_filt) = _additive_unscented_filter(
-            mu_0, sigma_0, f,
-            g, Q, R, Z
+        (filtered_state_means, sigma2_filt) = (
+            _additive_unscented_filter(
+                initial_state_mean, initial_state_covariance,
+                transition_functions, observation_functions,
+                transition_covariance, observation_covariance,
+                Z
+            )
         )
 
         # reconstruct covariance matrices
-        sigma_filt = np.zeros(sigma2_filt.shape)
-        for t in range(T):
-            sigma_filt[t] = sigma2_filt[t].T.dot(sigma2_filt[t])
+        filtered_state_covariances = np.zeros(sigma2_filt.shape)
+        for t in range(n_timesteps):
+            filtered_state_covariances[t] = sigma2_filt[t].T.dot(sigma2_filt[t])
 
-        return (mu_filt, sigma_filt)
+        return (filtered_state_means, filtered_state_covariances)
 
     def smooth(self, Z):
         '''Run Unscented Kalman Smoother
 
         Parameters
         ----------
-        Z : [T, n_dim_state] array
+        Z : [n_timesteps, n_dim_state] array
             Z[t] = observation at time t.  If Z is a masked array and any of
             Z[t]'s elements are masked, the observation is assumed missing and
             ignored.
 
         Returns
         -------
-        mu_smooth : [T, n_dim_state] array
-            mu_filt[t] = mean of state distribution at time t given
-            observations from times [0, T-1]
-        sigma_smooth : [T, n_dim_state, n_dim_state] array
-            sigma_filt[t] = covariance of state distribution at time t given
-            observations from times [0, T-1]
+        smoothed_state_means : [n_timesteps, n_dim_state] array
+            filtered_state_means[t] = mean of state distribution at time t
+            given observations from times [0, n_timesteps-1]
+        smoothed_state_covariances : [n_timesteps, n_dim_state, n_dim_state] array
+            smoothed_state_covariances[t] = covariance of state distribution at
+            time t given observations from times [0, n_timesteps-1]
         '''
         Z = self._parse_observations(Z)
 
-        (f, g, Q, R, mu_0, sigma_0) = self._initialize_parameters()
+        (transition_functions, observation_functions,
+         transition_covariance, observation_covariance,
+         initial_state_mean, initial_state_covariance) = (
+            self._initialize_parameters()
+        )
 
-        T = Z.shape[0]
+        n_timesteps = Z.shape[0]
 
         # run filter, then smoother
-        (mu_filt, sigma2_filt) = _additive_unscented_filter(
-            mu_0, sigma_0, f,
-            g, Q, R, Z
+        (filtered_state_means, sigma2_filt) = (
+            _additive_unscented_filter(
+                initial_state_mean, initial_state_covariance,
+                transition_functions, observation_functions,
+                transition_covariance, observation_covariance,
+                Z
+            )
         )
-        (mu_smooth, sigma2_smooth) = _additive_unscented_smoother(
-            mu_filt, sigma2_filt, f, Q
+        (smoothed_state_means, sigma2_smooth) = (
+            _additive_unscented_smoother(
+                filtered_state_means, sigma2_filt,
+                transition_functions, transition_covariance
+            )
         )
 
         # reconstruction covariance matrices
-        sigma_smooth = np.zeros(sigma2_smooth.shape)
-        for t in range(T):
-            sigma_smooth[t] = sigma2_smooth[t].T.dot(sigma2_smooth[t])
+        smoothed_state_covariances = np.zeros(sigma2_smooth.shape)
+        for t in range(n_timesteps):
+            smoothed_state_covariances[t] = (
+                sigma2_smooth[t].T.dot(sigma2_smooth[t])
+            )
 
-        return (mu_smooth, sigma_smooth)
+        return (smoothed_state_means, smoothed_state_covariances)

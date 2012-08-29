@@ -576,13 +576,17 @@ def _additive_unscented_smoother(mu_filt, sigma_filt, f, Q):
 
 class UnscentedMixin(object):
     """Methods shared by all Unscented Kalman Filter implementations."""
-    def __init__(self, f=None, g=None, Q=None, R=None, mu_0=None, sigma_0=None, n_dim_state=None, n_dim_obs=None, random_state=None):
-        self.f = f
-        self.g = g
-        self.Q = Q
-        self.R = R
-        self.mu_0 = mu_0
-        self.sigma_0 = sigma_0
+    def __init__(self, transition_functions=None, observation_functions=None,
+            transition_covariance=None, observation_covariance=None,
+            initial_state_mean=None, initial_state_covariance=None,
+            n_dim_state=None, n_dim_obs=None, random_state=None):
+
+        self.transition_functions = transition_functions
+        self.observation_functions = observation_functions
+        self.transition_covariance = transition_covariance
+        self.observation_covariance = observation_covariance
+        self.initial_state_mean = initial_state_mean
+        self.initial_state_covariance = initial_state_covariance
         self.n_dim_state = n_dim_state
         self.n_dim_obs = n_dim_obs
         self.random_state = random_state
@@ -592,48 +596,50 @@ class UnscentedMixin(object):
 
         # determine size of state and observation space
         n_dim_state = _determine_dimensionality(
-            [(self.Q, array2d, -2),
-             (self.sigma_0, array2d, -2),
-             (self.mu_0, array1d, -1)],
+            [(self.transition_covariance, array2d, -2),
+             (self.initial_state_covariance, array2d, -2),
+             (self.initial_state_mean, array1d, -1)],
             self.n_dim_state
         )
         n_dim_obs = _determine_dimensionality(
-            [(self.R, array2d, -2)],
+            [(self.observation_covariance, array2d, -2)],
             self.n_dim_obs
         )
 
         # initialize parameters
-        f = (
+        transition_functions = (
             array1d(lambda state, noise: state + noise)
-            if self.f is None
-            else array1d(self.f)
+            if self.transition_functions is None
+            else array1d(self.transition_functions)
         )
-        Q = (
+        transition_covariance = (
             np.eye(n_dim_state)
-            if self.Q is None
-            else array2d(self.Q)
+            if self.transition_covariance is None
+            else array2d(self.transition_covariance)
         )
-        g = (
+        observation_functions = (
             array1d(lambda state, noise: state + noise)
-            if self.g is None
-            else array1d(self.g)
+            if self.observation_functions is None
+            else array1d(self.observation_functions)
         )
-        R = (
+        observation_covariance = (
             np.eye(n_dim_obs)
-            if self.R is None
-            else array2d(self.R)
+            if self.observation_covariance is None
+            else array2d(self.observation_covariance)
         )
-        mu_0 = (
+        initial_state_mean = (
             np.zeros(n_dim_state)
-            if self.mu_0 is None
-            else array1d(self.mu_0)
+            if self.initial_state_mean is None
+            else array1d(self.initial_state_mean)
         )
-        sigma_0 = (
+        initial_state_covariance = (
             np.eye(n_dim_state)
-            if self.sigma_0 is None
-            else array2d(self.sigma_0)
+            if self.initial_state_covariance is None
+            else array2d(self.initial_state_covariance)
         )
-        return (f, g, Q, R, mu_0, sigma_0)
+        return (transition_functions, observation_functions,
+            transition_covariance, observation_covariance,
+            initial_state_mean, initial_state_covariance)
 
     def _parse_observations(self, obs):
         """Safely convert observations to their expected format"""
@@ -649,10 +655,9 @@ class UnscentedKalmanFilter(UnscentedMixin):
 
     .. math::
 
-        v_t       &\sim \text{Normal}(0, Q)     \\
-        w_t       &\sim \text{Normal}(0, R)     \\
-        x_{t+1}   &= f_t(x_t, v_t)              \\
-        z_{t}     &= g_t(x_t, w_t)
+        x_0       &\sim \text{Normal}(\mu_0, \Sigma_0)  \\
+        x_{t+1}   &=    f_t(x_t, \text{Normal}(0, Q))   \\
+        z_{t}     &=    g_t(x_t, \text{Normal}(0, R))
 
     Notice that although the input noise to the state transition equation and
     the observation equation are both normally distributed, any non-linear
@@ -667,44 +672,54 @@ class UnscentedKalmanFilter(UnscentedMixin):
 
     Parameters
     ----------
-    f : function or [T-1] array of functions
-        f[t] is a function of the state and the transition noise at time t and
-        produces the state at time t+1
-    g : function or [T] array of functions
-        g[t] is a function of the state and the observation noise at time t and
-        produces the observation at time t.
-    Q : [n_dim_state, n_dim_state] array
-        transition noise covariance matrix
-    R : [n_dim_obs, n_dim_obs] array
-        observation noise covariance matrix
-    mu_0 : [n_dim_state] array
-        mean of initial state distribution
-    sigma_0 : [n_dim_state, n_dim_state] array
-        covariance of initial state distribution
+    transition_functions : function or [n_timesteps-1] array of functions
+        transition_functions[t] is a function of the state and the transition
+        noise at time t and produces the state at time t+1.  Also known as
+        :math:`f_t`.
+    observation_functions : function or [n_timesteps] array of functions
+        observation_functions[t] is a function of the state and the observation
+        noise at time t and produces the observation at time t.  Also known as
+        :math:`g_t`.
+    transition_covariance : [n_dim_state, n_dim_state] array
+        transition noise covariance matrix. Also known as :math:`Q`.
+    observation_covariance : [n_dim_obs, n_dim_obs] array
+        observation noise covariance matrix. Also known as :math:`R`.
+    initial_state_mean : [n_dim_state] array
+        mean of initial state distribution. Also known as :math:`\mu_0`
+    initial_state_covariance : [n_dim_state, n_dim_state] array
+        covariance of initial state distribution. Also known as
+        :math:`\Sigma_0`
     n_dim_state: optional, integer
         the dimensionality of the state space. Only meaningful when you do not
-        specify initial values for `Q`, or `mu_0`, `sigma_0`.
+        specify initial values for `transition_covariance`, or
+        `initial_state_mean`, `initial_state_covariance`.
     n_dim_obs: optional, integer
         the dimensionality of the observation space. Only meaningful when you
-        do not specify initial values for `R`.
+        do not specify initial values for `observation_covariance`.
     random_state : optional, int or RandomState
         seed for random sample generation
     '''
-    def sample(self, T, x_0=None, random_state=None):
+    def sample(self, n_timesteps, initial_state=None, random_state=None):
         '''Sample from model defined by the Unscented Kalman Filter
 
         Parameters
         ----------
-        T : int
+        n_timesteps : int
             number of time steps
-        x_0 : optional, [n_dim_state] array
+        initial_state : optional, [n_dim_state] array
             initial state.  If unspecified, will be sampled from initial state
             distribution.
+        random_state : optional, int or Random
+            random number generator
         '''
-        (f, g, Q, R, mu_0, sigma_0) = self._initialize_parameters()
+        (transition_functions, observation_functions,
+         transition_covariance, observation_covariance,
+         initial_state_mean, initial_state_covariance) = (
+            self._initialize_parameters()
+        )
 
-        n_dim_state = Q.shape[-1]
-        n_dim_obs = R.shape[-1]
+        n_dim_state = transition_covariance.shape[-1]
+        n_dim_obs = observation_covariance.shape[-1]
 
         # logic for instantiating rng
         if random_state is None:
@@ -713,27 +728,39 @@ class UnscentedKalmanFilter(UnscentedMixin):
             rng = check_random_state(random_state)
 
         # logic for selecting initial state
-        if x_0 is None:
-            x_0 = rng.multivariate_normal(mu_0, sigma_0)
+        if initial_state is None:
+            initial_state = rng.multivariate_normal(
+                initial_state_mean, initial_state_covariance
+            )
 
         # logic for generating samples
-        x = np.zeros((T, n_dim_state))
-        z = np.zeros((T, n_dim_obs))
-        for t in range(T):
+        x = np.zeros((n_timesteps, n_dim_state))
+        z = np.zeros((n_timesteps, n_dim_obs))
+        for t in range(n_timesteps):
             if t == 0:
-                x[0] = x_0
+                x[0] = initial_state
             else:
-                f_t1 = _last_dims(f, t - 1, ndims=1)[0]
-                Q_t1 = Q
-                e_t1 = rng.multivariate_normal(np.zeros(n_dim_state),
-                                               Q_t1.newbyteorder('='))
-                x[t] = f_t1(x[t - 1], e_t1)
+                transition_function = (
+                    _last_dims(transition_functions, t - 1, ndims=1)[0]
+                )
+                transition_noise = (
+                    rng.multivariate_normal(
+                        np.zeros(n_dim_state),
+                        transition_covariance.newbyteorder('=')
+                    )
+                )
+                x[t] = transition_function(x[t - 1], transition_noise)
 
-            g_t = _last_dims(g, t, ndims=1)[0]
-            R_t = R
-            e_t2 = rng.multivariate_normal(np.zeros(n_dim_obs),
-                                           R_t.newbyteorder('='))
-            z[t] = g_t(x[t], e_t2)
+            observation_function = (
+                _last_dims(observation_functions, t, ndims=1)[0]
+            )
+            observation_noise = (
+                rng.multivariate_normal(
+                    np.zeros(n_dim_obs),
+                    observation_covariance.newbyteorder('=')
+                )
+            )
+            z[t] = observation_function(x[t], observation_noise)
 
         return (x, ma.asarray(z))
 
@@ -742,60 +769,75 @@ class UnscentedKalmanFilter(UnscentedMixin):
 
         Parameters
         ----------
-        Z : [T, n_dim_state] array
+        Z : [n_timesteps, n_dim_state] array
             Z[t] = observation at time t.  If Z is a masked array and any of
             Z[t]'s elements are masked, the observation is assumed missing and
             ignored.
 
         Returns
         -------
-        mu_filt : [T, n_dim_state] array
-            mu_filt[t] = mean of state distribution at time t given
+        filtered_state_means : [n_timesteps, n_dim_state] array
+            filtered_state_means[t] = mean of state distribution at time t given
             observations from times [0, t]
-        sigma_filt : [T, n_dim_state, n_dim_state] array
-            sigma_filt[t] = covariance of state distribution at time t given
-            observations from times [0, t]
+        filtered_state_covariances : [n_timesteps, n_dim_state, n_dim_state] array
+            filtered_state_covariances[t] = covariance of state distribution at
+            time t given observations from times [0, t]
         '''
         Z = self._parse_observations(Z)
 
-        (f, g, Q, R, mu_0, sigma_0) = self._initialize_parameters()
-
-        (mu_filt, sigma_filt) = _augmented_unscented_filter(
-            mu_0, sigma_0, f,
-            g, Q, R, Z
+        (transition_functions, observation_functions,
+         transition_covariance, observation_covariance,
+         initial_state_mean, initial_state_covariance) = (
+            self._initialize_parameters()
         )
 
-        return (mu_filt, sigma_filt)
+        (filtered_state_means, filtered_state_covariances) = (
+            _augmented_unscented_filter(
+                initial_state_mean, initial_state_covariance,
+                transition_functions, observation_functions,
+                transition_covariance, observation_covariance,
+                Z
+            )
+        )
+
+        return (filtered_state_means, filtered_state_covariances)
 
     def smooth(self, Z):
         '''Run Unscented Kalman Smoother
 
         Parameters
         ----------
-        Z : [T, n_dim_state] array
+        Z : [n_timesteps, n_dim_state] array
             Z[t] = observation at time t.  If Z is a masked array and any of
             Z[t]'s elements are masked, the observation is assumed missing and
             ignored.
 
         Returns
         -------
-        mu_smooth : [T, n_dim_state] array
-            mu_filt[t] = mean of state distribution at time t given
-            observations from times [0, T-1]
-        sigma_smooth : [T, n_dim_state, n_dim_state] array
-            sigma_filt[t] = covariance of state distribution at time t given
-            observations from times [0, T-1]
+        smoothed_state_means : [n_timesteps, n_dim_state] array
+            filtered_state_means[t] = mean of state distribution at time t given
+            observations from times [0, n_timesteps-1]
+        smoothed_state_covariances : [n_timesteps, n_dim_state, n_dim_state] array
+            filtered_state_covariances[t] = covariance of state distribution at
+            time t given observations from times [0, n_timesteps-1]
         '''
         Z = self._parse_observations(Z)
 
-        (f, g, Q, R, mu_0, sigma_0) = self._initialize_parameters()
-
-        (mu_filt, sigma_filt) = self.filter(Z)
-        (mu_smooth, sigma_smooth) = _augmented_unscented_smoother(
-            mu_filt, sigma_filt, f, Q
+        (transition_functions, observation_functions,
+         transition_covariance, observation_covariance,
+         initial_state_mean, initial_state_covariance) = (
+            self._initialize_parameters()
         )
 
-        return (mu_smooth, sigma_smooth)
+        (filtered_state_means, filtered_state_covariances) = self.filter(Z)
+        (smoothed_state_means, smoothed_state_covariances) = (
+            _augmented_unscented_smoother(
+                filtered_state_means, filtered_state_covariances,
+                transition_functions, transition_covariance
+            )
+        )
+
+        return (smoothed_state_means, smoothed_state_covariances)
 
 
 class AdditiveUnscentedKalmanFilter(UnscentedMixin):
@@ -804,10 +846,10 @@ class AdditiveUnscentedKalmanFilter(UnscentedMixin):
 
     .. math::
 
-        v_t       &\sim \text{Normal}(0, Q)     \\
-        w_t       &\sim \text{Normal}(0, R)     \\
-        x_{t+1}   &= f_t(x_t) + v_t             \\
-        z_{t}     &= g_t(x_t) + w_t
+        x_0       &\sim \text{Normal}(\mu_0, \Sigma_0)  \\
+        x_{t+1}   &=    f_t(x_t) + \text{Normal}(0, Q)  \\
+        z_{t}     &=    g_t(x_t) + \text{Normal}(0, R)
+
 
     While less general the general-noise Unscented Kalman Filter, the Additive
     version is more computationally efficient with complexity :math:`O(Tn^3)`
@@ -816,44 +858,50 @@ class AdditiveUnscentedKalmanFilter(UnscentedMixin):
 
     Parameters
     ----------
-    f : function or [T-1] array of functions
-        f[t] is a function of the state at time t and produces the state at
-        time t+1
-    g : function or [T] array of functions
-        g[t] is a function of the state at time t and produces the observation
-        at time t
-    Q : [n_dim_state, n_dim_state] array
-        transition noise covariance matrix
-    R : [n_dim_obs, n_dim_obs] array
-        observation noise covariance matrix
-    mu_0 : [n_dim_state] array
-        mean of initial state distribution
-    sigma_0 : [n_dim_state, n_dim_state] array
-        covariance of initial state distribution
+    transition_functions : function or [n_timesteps-1] array of functions
+        transition_functions[t] is a function of the state at time t and
+        produces the state at time t+1. Also known as :math:`f_t`.
+    observation_functions : function or [n_timesteps] array of functions
+        observation_functions[t] is a function of the state at time t and
+        produces the observation at time t. Also known as :math:`g_t`.
+    transition_covariance : [n_dim_state, n_dim_state] array
+        transition noise covariance matrix. Also known as :math:`Q`.
+    observation_covariance : [n_dim_obs, n_dim_obs] array
+        observation noise covariance matrix. Also known as :math:`R`.
+    initial_state_mean : [n_dim_state] array
+        mean of initial state distribution. Also known as :math:`\mu_0`.
+    initial_state_covariance : [n_dim_state, n_dim_state] array
+        covariance of initial state distribution. Also known as
+        :math:`\Sigma_0`.
     n_dim_state: optional, integer
         the dimensionality of the state space. Only meaningful when you do not
-        specify initial values for `Q`, or `mu_0`, `sigma_0`.
+        specify initial values for `transition_covariance`, or
+        `initial_state_mean`, `initial_state_covariance`.
     n_dim_obs: optional, integer
         the dimensionality of the observation space. Only meaningful when you
-        do not specify initial values for `R`.
+        do not specify initial values for `observation_covariance`.
     random_state : optional, int or RandomState
         seed for random sample generation
     '''
-    def sample(self, T, x_0=None, random_state=None):
+    def sample(self, n_timesteps, initial_state=None, random_state=None):
         '''Sample from model defined by the Unscented Kalman Filter
 
         Parameters
         ----------
-        T : int
+        n_timesteps : int
             number of time steps
-        x_0 : optional, [n_dim_state] array
+        initial_state : optional, [n_dim_state] array
             initial state.  If unspecified, will be sampled from initial state
             distribution.
         '''
-        (f, g, Q, R, mu_0, sigma_0) = self._initialize_parameters()
+        (transition_functions, observation_functions,
+         transition_covariance, observation_covariance,
+         initial_state_mean, initial_state_covariance) = (
+            self._initialize_parameters()
+        )
 
-        n_dim_state = Q.shape[-1]
-        n_dim_obs = R.shape[-1]
+        n_dim_state = transition_covariance.shape[-1]
+        n_dim_obs = observation_covariance.shape[-1]
 
         # logic for instantiating rng
         if random_state is None:
@@ -862,27 +910,42 @@ class AdditiveUnscentedKalmanFilter(UnscentedMixin):
             rng = check_random_state(random_state)
 
         # logic for selecting initial state
-        if x_0 is None:
-            x_0 = rng.multivariate_normal(mu_0, sigma_0)
+        if initial_state is None:
+            initial_state = (
+                rng.multivariate_normal(
+                    initial_state_mean,
+                    initial_state_covariance
+                )
+            )
 
         # logic for generating samples
-        x = np.zeros((T, n_dim_state))
-        z = np.zeros((T, n_dim_obs))
-        for t in range(T):
+        x = np.zeros((n_timesteps, n_dim_state))
+        z = np.zeros((n_timesteps, n_dim_obs))
+        for t in range(n_timesteps):
             if t == 0:
-                x[0] = x_0
+                x[0] = initial_state
             else:
-                f_t1 = _last_dims(f, t - 1, ndims=1)[0]
-                Q_t1 = Q
-                e_t1 = rng.multivariate_normal(np.zeros(n_dim_state),
-                                               Q_t1.newbyteorder('='))
-                x[t] = f_t1(x[t - 1]) + e_t1
+                transition_function = (
+                    _last_dims(transition_functions, t - 1, ndims=1)[0]
+                )
+                transition_noise = (
+                    rng.multivariate_normal(
+                        np.zeros(n_dim_state),
+                        transition_covariance.newbyteorder('=')
+                    )
+                )
+                x[t] = transition_function(x[t - 1]) + transition_noise
 
-            g_t = _last_dims(g, t, ndims=1)[0]
-            R_t = R
-            e_t2 = rng.multivariate_normal(np.zeros(n_dim_obs),
-                                           R_t.newbyteorder('='))
-            z[t] = g_t(x[t]) + e_t2
+            observation_function = (
+                _last_dims(observation_functions, t, ndims=1)[0]
+            )
+            observation_noise = (
+                rng.multivariate_normal(
+                    np.zeros(n_dim_obs),
+                    observation_covariance.newbyteorder('=')
+                )
+            )
+            z[t] = observation_function(x[t]) + observation_noise
 
         return (x, ma.asarray(z))
 
@@ -891,57 +954,72 @@ class AdditiveUnscentedKalmanFilter(UnscentedMixin):
 
         Parameters
         ----------
-        Z : [T, n_dim_state] array
+        Z : [n_timesteps, n_dim_state] array
             Z[t] = observation at time t.  If Z is a masked array and any of
             Z[t]'s elements are masked, the observation is assumed missing and
             ignored.
 
         Returns
         -------
-        mu_filt : [T, n_dim_state] array
-            mu_filt[t] = mean of state distribution at time t given
+        filtered_state_means : [n_timesteps, n_dim_state] array
+            filtered_state_means[t] = mean of state distribution at time t given
             observations from times [0, t]
-        sigma_filt : [T, n_dim_state, n_dim_state] array
-            sigma_filt[t] = covariance of state distribution at time t given
-            observations from times [0, t]
+        filtered_state_covariances : [n_timesteps, n_dim_state, n_dim_state] array
+            filtered_state_covariances[t] = covariance of state distribution at
+            time t given observations from times [0, t]
         '''
         Z = self._parse_observations(Z)
 
-        (f, g, Q, R, mu_0, sigma_0) = self._initialize_parameters()
-
-        (mu_filt, sigma_filt) = _additive_unscented_filter(
-            mu_0, sigma_0, f,
-            g, Q, R, Z
+        (transition_functions, observation_functions,
+         transition_covariance, observation_covariance,
+         initial_state_mean, initial_state_covariance) = (
+            self._initialize_parameters()
         )
 
-        return (mu_filt, sigma_filt)
+        (filtered_state_means, filtered_state_covariances) = (
+            _additive_unscented_filter(
+                initial_state_mean, initial_state_covariance,
+                transition_functions, observation_functions,
+                transition_covariance, observation_covariance,
+                Z
+            )
+        )
+
+        return (filtered_state_means, filtered_state_covariances)
 
     def smooth(self, Z):
         '''Run Unscented Kalman Smoother
 
         Parameters
         ----------
-        Z : [T, n_dim_state] array
+        Z : [n_timesteps, n_dim_state] array
             Z[t] = observation at time t.  If Z is a masked array and any of
             Z[t]'s elements are masked, the observation is assumed missing and
             ignored.
 
         Returns
         -------
-        mu_smooth : [T, n_dim_state] array
-            mu_filt[t] = mean of state distribution at time t given
-            observations from times [0, T-1]
-        sigma_smooth : [T, n_dim_state, n_dim_state] array
-            sigma_filt[t] = covariance of state distribution at time t given
-            observations from times [0, T-1]
+        smoothed_state_means : [n_timesteps, n_dim_state] array
+            filtered_state_means[t] = mean of state distribution at time t given
+            observations from times [0, n_timesteps-1]
+        smoothed_state_covariances : [n_timesteps, n_dim_state, n_dim_state] array
+            filtered_state_covariances[t] = covariance of state distribution at
+            time t given observations from times [0, n_timesteps-1]
         '''
         Z = ma.asarray(Z)
 
-        (f, g, Q, R, mu_0, sigma_0) = self._initialize_parameters()
-
-        (mu_filt, sigma_filt) = self.filter(Z)
-        (mu_smooth, sigma_smooth) = _additive_unscented_smoother(
-            mu_filt, sigma_filt, f, Q
+        (transition_functions, observation_functions,
+         transition_covariance, observation_covariance,
+         initial_state_mean, initial_state_covariance) = (
+            self._initialize_parameters()
         )
 
-        return (mu_smooth, sigma_smooth)
+        (filtered_state_means, filtered_state_covariances) = self.filter(Z)
+        (smoothed_state_means, smoothed_state_covariances) = (
+            _additive_unscented_smoother(
+                filtered_state_means, filtered_state_covariances,
+                transition_functions, transition_covariance
+            )
+        )
+
+        return (smoothed_state_means, smoothed_state_covariances)

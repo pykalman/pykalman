@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name = 'pykalman',
-    version = '0.9.1',
+    version = '0.9.2',
     author = 'Daniel Duckworth',
     author_email = 'pykalman@gmail.com',
     description = ('An implementation of the Kalman Filter, Kalman ' +
