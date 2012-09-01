@@ -11,6 +11,7 @@ import warnings
 import numpy as np
 from scipy import linalg
 
+from .spectral import _spectral
 from .utils import array1d, array2d, check_random_state, \
     get_params, log_multivariate_normal_density
 
@@ -1350,32 +1351,7 @@ class KalmanFilter(object):
         # Create dictionary of variables not to perform EM on
         if em_vars is None:
             em_vars = self.em_vars
-
-        if em_vars == 'all':
-            given = {}
-        else:
-            given = {
-                'transition_matrices': self.transition_matrices,
-                'observation_matrices': self.observation_matrices,
-                'transition_offsets': self.transition_offsets,
-                'observation_offsets': self.observation_offsets,
-                'transition_covariance': self.transition_covariance,
-                'observation_covariance': self.observation_covariance,
-                'initial_state_mean': self.initial_state_mean,
-                'initial_state_covariance': self.initial_state_covariance
-            }
-            em_vars = set(em_vars)
-            for k in given.keys():
-                if k in em_vars:
-                    given.pop(k)
-
-        # If a parameter is time varying, print a warning
-        for (k, v) in get_params(self).items():
-            if k in DIM and (not k in given) and len(v.shape) != DIM[k]:
-                warn_str = (
-                    '%s has %s dimensions now; after fitting, '
-                    + 'it will have dimension %d') % (k, len(v.shape), DIM[k])
-                warnings.warn(warn_str)
+        given = self._get_given(em_vars)
 
         # Actual EM iterations
         for i in range(n_iter):
@@ -1412,6 +1388,27 @@ class KalmanFilter(object):
                 )
             )
         return self
+
+    def spectral(self, X, y=None, em_vars=None):
+        Z = self._parse_observations(X)
+
+        # initialize parameters
+        (self.transition_matrices, self.transition_offsets,
+         self.transition_covariance, self.observation_matrices,
+         self.observation_offsets, self.observation_covariance,
+         self.initial_state_mean, self.initial_state_covariance) = (
+            self._initialize_parameters()
+        )
+
+        # Create dictionary of variables not to perform EM on
+        if em_vars is None:
+            em_vars = self.em_vars
+        given = self._get_given(em_vars)
+
+        # TODO connect with _spectral
+
+        return self
+
 
     def loglikelihood(self, X):
         """Calculate the log likelihood of all observations
@@ -1529,3 +1526,32 @@ class KalmanFilter(object):
         if obs.shape[0] == 1 and obs.shape[1] > 1:
             obs = obs.T
         return obs
+
+    def _get_given(self, em_vars):
+        if em_vars == 'all':
+            given = {}
+        else:
+            given = {
+                'transition_matrices': self.transition_matrices,
+                'observation_matrices': self.observation_matrices,
+                'transition_offsets': self.transition_offsets,
+                'observation_offsets': self.observation_offsets,
+                'transition_covariance': self.transition_covariance,
+                'observation_covariance': self.observation_covariance,
+                'initial_state_mean': self.initial_state_mean,
+                'initial_state_covariance': self.initial_state_covariance
+            }
+            em_vars = set(em_vars)
+            for k in given.keys():
+                if k in em_vars:
+                    given.pop(k)
+
+        # If a parameter is time varying, print a warning
+        for (k, v) in get_params(self).items():
+            if k in DIM and (not k in given) and len(v.shape) != DIM[k]:
+                warn_str = (
+                    '%s has %s dimensions now; after fitting, '
+                    + 'it will have dimension %d') % (k, len(v.shape), DIM[k])
+                warnings.warn(warn_str)
+
+        return given
