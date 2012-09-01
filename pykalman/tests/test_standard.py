@@ -13,6 +13,25 @@ from pykalman.datasets import load_robot
 data = load_robot()
 
 
+def check_dims(n_dim_state, n_dim_obs, kwargs):
+    kf = KalmanFilter(**kwargs)
+    (transition_matrices, transition_offsets, transition_covariance,
+     observation_matrices, observation_offsets, observation_covariance,
+     initial_state_mean, initial_state_covariance) = (
+        kf._initialize_parameters()
+    )
+    assert_true(transition_matrices.shape == (n_dim_state, n_dim_state))
+    assert_true(transition_offsets.shape == (n_dim_state,))
+    assert_true(transition_covariance.shape == (n_dim_state, n_dim_state))
+    assert_true(observation_matrices.shape == (n_dim_obs, n_dim_state))
+    assert_true(observation_offsets.shape == (n_dim_obs,))
+    assert_true(observation_covariance.shape == (n_dim_obs, n_dim_obs))
+    assert_true(initial_state_mean.shape == (n_dim_state,))
+    assert_true(
+        initial_state_covariance.shape == (n_dim_state, n_dim_state)
+    )
+
+
 def test_kalman_sampling():
     kf = KalmanFilter(
         data.transition_matrix,
@@ -134,24 +153,6 @@ def test_kalman_fit():
 
 
 def test_kalman_initialize_parameters():
-    def check_dims(n_dim_state, n_dim_obs, kwargs):
-        kf = KalmanFilter(**kwargs)
-        (transition_matrices, transition_offsets, transition_covariance,
-         observation_matrices, observation_offsets, observation_covariance,
-         initial_state_mean, initial_state_covariance) = (
-            kf._initialize_parameters()
-        )
-        assert_true(transition_matrices.shape == (n_dim_state, n_dim_state))
-        assert_true(transition_offsets.shape == (n_dim_state,))
-        assert_true(transition_covariance.shape == (n_dim_state, n_dim_state))
-        assert_true(observation_matrices.shape == (n_dim_obs, n_dim_state))
-        assert_true(observation_offsets.shape == (n_dim_obs,))
-        assert_true(observation_covariance.shape == (n_dim_obs, n_dim_obs))
-        assert_true(initial_state_mean.shape == (n_dim_state,))
-        assert_true(
-            initial_state_covariance.shape == (n_dim_state, n_dim_state)
-        )
-
     check_dims(5, 1, {'transition_matrices': np.eye(5)})
     check_dims(1, 3, {'observation_offsets': np.zeros(3)})
     check_dims(2, 3, {'transition_covariance': np.eye(2),

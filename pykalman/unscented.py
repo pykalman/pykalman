@@ -1023,3 +1023,26 @@ class AdditiveUnscentedKalmanFilter(UnscentedMixin):
         )
 
         return (smoothed_state_means, smoothed_state_covariances)
+
+    def _initialize_parameters(self):
+        """Retrieve parameters if they exist, else replace with defaults"""
+        (_, _,
+         transition_covariance, observation_covariance,
+         initial_state_mean, initial_state_covariance) = (
+            super(AdditiveUnscentedKalmanFilter, self)._initialize_parameters()
+        )
+        transition_functions = (
+            array1d(lambda state: state)
+            if self.transition_functions is None
+            else array1d(self.transition_functions)
+        )
+        observation_functions = (
+            array1d(lambda state: state)
+            if self.observation_functions is None
+            else array1d(self.observation_functions)
+        )
+        return (
+            transition_functions, observation_functions,
+            transition_covariance, observation_covariance,
+            initial_state_mean, initial_state_covariance
+        )

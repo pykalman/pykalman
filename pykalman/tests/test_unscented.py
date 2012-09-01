@@ -1,3 +1,5 @@
+import inspect
+
 import numpy as np
 from numpy import ma
 from numpy.testing import assert_array_almost_equal
@@ -44,6 +46,40 @@ def check_unscented_prediction(method, mu_true, sigma_true):
 
     assert_array_almost_equal(mu_true, mu_est, decimal=8)
     assert_array_almost_equal(sigma_true, sigma_est, decimal=8)
+
+
+def check_dims(n_dim_state, n_dim_obs, n_func_args, kf_cls, kwargs):
+    kf = kf_cls(**kwargs)
+    (transition_functions, observation_functions,
+     transition_covariance, observation_covariance,
+     initial_state_mean, initial_state_covariance) = (
+        kf._initialize_parameters()
+    )
+
+    assert_true(
+        transition_functions.shape == (1,)
+        if not 'transition_functions' in kwargs
+        else (len(kwargs['transition_functions']),)
+    )
+    assert_true(
+        all([len(inspect.getargspec(f).args) == n_func_args
+            for f in transition_functions])
+    )
+    assert_true(transition_covariance.shape == (n_dim_state, n_dim_state))
+    assert_true(
+        observation_functions.shape == (1,)
+        if not 'observation_functions' in kwargs
+        else (len(kwargs['observation_functions']),)
+    )
+    assert_true(
+        all([len(inspect.getargspec(f).args) == n_func_args
+          for f in observation_functions])
+    )
+    assert_true(observation_covariance.shape == (n_dim_obs, n_dim_obs))
+    assert_true(initial_state_mean.shape == (n_dim_state,))
+    assert_true(
+        initial_state_covariance.shape == (n_dim_state, n_dim_state)
+    )
 
 
 def test_unscented_sample():
@@ -150,3 +186,25 @@ def test_additive_smoother():
         build_unscented_filter(AdditiveUnscentedKalmanFilter).smooth,
         mu_true, sigma_true
     )
+
+
+def test_unscented_initialize_parameters():
+    check_dims(1, 1, 2, UnscentedKalmanFilter,
+        {'transition_functions': [lambda x, y: x, lambda x, y: x]})
+    check_dims(3, 5, 2, UnscentedKalmanFilter,
+        {'n_dim_state': 3, 'n_dim_obs': 5})
+    check_dims(1, 3, 2, UnscentedKalmanFilter,
+        {'observation_covariance': np.eye(3)})
+    check_dims(2, 1, 2, UnscentedKalmanFilter,
+        {'initial_state_mean': np.zeros(2)})
+
+
+def test_additive_initialize_parameters():
+    check_dims(1, 1, 1, AdditiveUnscentedKalmanFilter,
+        {'transition_functions': [lambda x: x, lambda x: x]})
+    check_dims(3, 5, 1, AdditiveUnscentedKalmanFilter,
+        {'n_dim_state': 3, 'n_dim_obs': 5})
+    check_dims(1, 3, 1, AdditiveUnscentedKalmanFilter,
+        {'observation_covariance': np.eye(3)})
+    check_dims(2, 1, 1, AdditiveUnscentedKalmanFilter,
+        {'initial_state_mean': np.zeros(2)})
