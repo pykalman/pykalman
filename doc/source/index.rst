@@ -70,6 +70,12 @@ Unscented Kalman Filter User's Guide
 
 .. include:: ukf_users_guide.rst
 
+-----------------------------
+Dealing with Numerical Errors
+-----------------------------
+
+.. include:: numerical_stability.rst
+
 ---------------
 Class Reference
 ---------------
