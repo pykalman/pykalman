@@ -13,7 +13,7 @@ References
 ----------
 
 * Terejanu, G.A. Towards a Decision-Centric Framework for Uncertainty
-  Propagation and Data Assimilation. 2010.
+  Propagation and Data Assimilation. 2010. Page 108.
 * Van Der Merwe, R. and Wan, E.A. The Square-Root Unscented Kalman Filter for
   State and Parameter-Estimation. 2001.
 '''
