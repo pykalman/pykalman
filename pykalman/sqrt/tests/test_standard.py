@@ -64,16 +64,23 @@ def test_kalman_filter_update():
 
     # use online Kalman Filter
     n_timesteps = data.observations.shape[0]
-    n_dim_state = data.transition_matrix.shape[0]
+    n_dim_obs, n_dim_state = data.observation_matrix.shape
+    kf2 = KalmanFilter(n_dim_state=n_dim_state, n_dim_obs=n_dim_obs)
     x_filt2 = np.zeros((n_timesteps, n_dim_state))
     V_filt2 = np.zeros((n_timesteps, n_dim_state, n_dim_state))
     for t in range(n_timesteps - 1):
         if t == 0:
             x_filt2[0] = data.initial_state_mean
             V_filt2[0] = data.initial_state_covariance
-        (x_filt2[t + 1], V_filt2[t + 1]) = kf.filter_update(
-            x_filt2[t], V_filt2[t], data.observations[t + 1],
-            transition_offset=data.transition_offsets[t]
+        (x_filt2[t + 1], V_filt2[t + 1]) = kf2.filter_update(
+            x_filt2[t], V_filt2[t],
+            observation=data.observations[t + 1],
+            transition_matrix=data.transition_matrix,
+            transition_offset=data.transition_offsets[t],
+            transition_covariance=data.transition_covariance,
+            observation_matrix=data.observation_matrix,
+            observation_offset=data.observation_offset,
+            observation_covariance=data.observation_covariance
         )
     assert_array_almost_equal(x_filt, x_filt2)
     assert_array_almost_equal(V_filt, V_filt2)

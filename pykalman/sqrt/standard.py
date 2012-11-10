@@ -475,33 +475,33 @@ class KalmanFilter(KalmanFilter):
             from times [1...t+1]
         """
         # initialize matrices
-        (transition_matrices, transition_offsets, transition_covariance,
-         observation_matrices, observation_offsets, observation_covariance,
+        (transition_matrices, transition_offsets, transition_cov,
+         observation_matrices, observation_offsets, observation_cov,
          initial_state_mean, initial_state_covariance) = (
             self._initialize_parameters()
         )
         transition_offset = _arg_or_default(
-            transition_offset, self.transition_offsets,
+            transition_offset, transition_offsets,
             1, "transition_offset"
         )
         observation_offset = _arg_or_default(
-            observation_offset, self.observation_offsets,
+            observation_offset, observation_offsets,
             1, "observation_offset"
         )
         transition_matrix = _arg_or_default(
-            transition_matrix, self.transition_matrices,
+            transition_matrix, transition_matrices,
             2, "transition_matrix"
         )
         observation_matrix = _arg_or_default(
-            observation_matrix, self.observation_matrices,
+            observation_matrix, observation_matrices,
             2, "observation_matrix"
         )
         transition_covariance = _arg_or_default(
-            transition_covariance, self.transition_covariance,
+            transition_covariance, transition_cov,
             2, "transition_covariance"
         )
         observation_covariance = _arg_or_default(
-            observation_covariance, self.observation_covariance,
+            observation_covariance, observation_cov,
             2, "observation_covariance"
         )
 
