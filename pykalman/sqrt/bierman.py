@@ -3,8 +3,9 @@
 Inference for Linear-Gaussian Systems
 =====================================
 
-This module implements the Kalman Filter in "Square Root" form (Cholesky
-factorization).
+This module implements Bierman's version of the Kalman Filter.  In particular,
+the UDU' decomposition of the covariance matrix is used instead of the full
+matrix, where U is upper triangular and D is diagonal.
 """
 import warnings
 
@@ -17,24 +18,131 @@ from ..utils import array1d, array2d, check_random_state, \
     get_params
 
 
-def _reconstruct_covariances(covariance2s):
-    '''Reconstruct covariance matrices given their cholesky factors'''
-    if len(covariance2s.shape) == 2:
-        covariance2s = covariance2s[np.newaxis, :, :]
+def _reconstruct_covariances(covariances):
+    '''Reconstruct covariance matrices given their UDU' factorizations'''
+    if isinstance(covariances, UDU_decomposition):
+        covariances = np.asarray([covariances])
 
-    T = covariance2s.shape[0]
-    covariances = np.zeros(covariance2s.shape)
+    n_timesteps = covariances.shape[0]
+    n_dim_state = covariances[0].U.shape[0]
+    result = np.zeros((n_timesteps, n_dim_state, n_dim_state))
 
-    for t in range(T):
-        M = covariance2s[t]
-        covariances[t] = M.dot(M.T)
+    for t in range(n_timesteps):
+        result[t] = covariances[t].reconstruct()
 
-    return covariances
+    return result
 
 
-def _filter_predict(transition_matrix, transition_covariance2,
+class UDU_decomposition(object):
+    """Represents a UDU' decomposition of a matrix"""
+    def __init__(self, U, D):
+        self.U = U
+        self.D = D
+
+    def reconstruct(self):
+        return self.U.dot(np.diag(self.D)).dot(self.U.T)
+
+
+def udu(M):
+    """Construct the UDU' decomposition of a positive, semidefinite matrix M
+
+    Parameters
+    ----------
+    M : [n, n] array
+        Matrix to factorize
+
+    Returns
+    -------
+    UDU : UDU_decomposition of size n
+        UDU' representation of M
+    """
+    assert np.allclose(M, M.T), 'M must be symmetric, positive semidefinite'
+    n = M.shape[0]
+
+    # perform Bierman's COV2UD subroutine (fucking inclusive indices)
+    M = np.triu(M)
+    U = np.eye(n)
+    d = np.zeros(n)
+    for j in reversed(range(2, n + 1)):
+        d[j - 1] = M[j - 1, j - 1]
+        if d[j - 1] > 0:
+            alpha = 1.0 / d[j - 1]
+        else:
+            alpha = 0.0
+        for k in range(1, j):
+            beta = M[k - 1, j - 1]
+            U[k - 1, j - 1] = alpha * beta
+            M[0:k, k - 1] = M[0:k, k - 1] - beta * U[0:k, j - 1]
+
+    d[0] = M[0, 0]
+
+    return UDU_decomposition(U, d)
+
+
+def decorrelate_observations(observation_matrices, observation_offsets,
+                             observation_covariance, observations):
+    """Make each coordinate of all observation independent
+
+    Modify observations and all associated parameters such that all observation
+    indices are expected to be independent.
+
+    Parameters
+    ----------
+    observation_matrices : [n_timesteps, n_dim_obs, n_dim_obs] or [n_dim_obs, \
+    n_dim_obs] array
+        observation matrix
+    observation_offsets : [n_timesteps, n_dim_obs] or [n_dim_obs] array
+        observations for times [0...n_timesteps-1]
+    observation_covariance : [n_timesteps, n_dim_obs, n_dim_obs] or \
+    [n_dim_obs, n_dim_obs] array
+        observation covariance matrix
+    observations : [n_timesteps, n_dim_obs] array
+        observations from times [0...n_timesteps-1].  If `observations` is a
+        masked array and any of `observations[t]` is masked, then
+        `observations[t]` will be treated as a missing observation.
+
+    Returns
+    -------
+    observation_matrices2 : [n_timesteps, n_dim_obs, n_dim_obs] or [n_dim_obs, \
+    n_dim_obs] array
+        observation matrix with each index decorrelated
+    observation_offsets2 : [n_timesteps, n_dim_obs] or [n_dim_obs] array
+        observations for times [0...n_timesteps-1] with each index decorrelated
+    observation_covariance : [n_timesteps, n_dim_obs, n_dim_obs] or \
+    [n_dim_obs, n_dim_obs] array
+        observation covariance matrix with each index decorrelated
+    observations2 : [n_timesteps, n_dim_obs] array
+        observations from times [0...n_timesteps-1] with each index
+        decorrelated.
+    """
+    n_dim_obs = observations.shape[-1]
+
+    # calculate (R^{1/2})^{-1}
+    observation_covariance2 = linalg.cholesky(observation_covariance, lower=True)
+    observation_covariance_inv = linalg.pinv(observation_covariance2)
+
+    # decorrelate observation_matrices
+    observation_matrices2 = np.copy(observation_matrices)
+    if len(observation_matrices.shape) == DIM['observation_matrices'] + 1:
+        n_timesteps = observation_matrices.shape[0]
+        for t in range(n_timesteps):
+            observation_matrices2[t] = observation_covariance_inv.dot(observation_matrices[t])
+    else:
+        observation_matrices2 = observation_covariance_inv.dot(observation_matrices)
+
+    # decorrelate observation_offsets
+    observation_offsets2 = observation_covariance_inv.dot(observation_offsets.T).T
+
+    # decorrelate observations
+    observations2 = observation_covariance_inv.dot(observations.T).T
+
+    return (observation_matrices2, observation_offsets2,
+        np.eye(n_dim_obs), observations2)
+
+
+def _filter_predict(transition_matrix, transition_covariance,
                     transition_offset, current_state_mean,
-                    current_state_covariance2):
+                    current_state_covariance):
     r"""Calculate the mean and covariance of :math:`P(x_{t+1} | z_{0:t})`
 
     Using the mean and covariance of :math:`P(x_t | z_{0:t})`, calculate the
@@ -44,58 +152,104 @@ def _filter_predict(transition_matrix, transition_covariance2,
     ----------
     transition_matrix : [n_dim_state, n_dim_state} array
         state transition matrix from time t to t+1
-    transition_covariance2 : [n_dim_state, n_dim_state] array
-        square root of the covariance matrix for state transition from time
-        t to t+1
+    transition_covariance : [n_dim_state, n_dim_state] array
+        covariance matrix for state transition from time t to t+1
     transition_offset : [n_dim_state] array
         offset for state transition from time t to t+1
     current_state_mean: [n_dim_state] array
         mean of state at time t given observations from times
         [0...t]
-    current_state_covariance2: [n_dim_state, n_dim_state] array
-        square root of the covariance of state at time t given observations
-        from times [0...t]
+    current_state_covariance: n_dim_state UDU_decomposition
+        UDU' decomposition of the covariance of state at time t given
+        observations from times [0...t]
 
     Returns
     -------
     predicted_state_mean : [n_dim_state] array
         mean of state at time t+1 given observations from times [0...t]
-    predicted_state_covariance2 : [n_dim_state, n_dim_state] array
-        square root of the covariance of state at time t+1 given observations
-        from times [0...t]
+    predicted_state_covariance : n_dim_state UDU_decomposition
+        UDU' decomposition of the covariance of state at time t+1 given
+        observations from times [0...t]
 
     References
     ----------
-    * Kaminski, Paul G. Square Root Filtering and Smoothing for Discrete
-      Processes. July 1971. Page 41.
+    * Gibbs, Bruce P. Advanced Kalman Filtering, Least-Squares, and Modeling: A
+      Practical Handbook. Page 401.
     """
     n_dim_state = len(current_state_mean)
 
     # predict new mean
-    # x_{t+1|t} = A x_t + b_t
     predicted_state_mean = (
         np.dot(transition_matrix, current_state_mean)
         + transition_offset
     )
 
     # predict new covariance
-    # [S_{k|k-1}^T; 0] = T_1 [ S_{k-1|k-1}^T A^T; Q^{1/2}^T ] for orthonormal T_1
-    T, predicted_state_covariance2 = (
-        linalg.qr(np.hstack([
-            np.dot(transition_matrix, current_state_covariance2),
-            transition_covariance2
-        ]).T)
+    predicted_state_covariance = udu(
+        transition_matrix
+        .dot(current_state_covariance.reconstruct())
+        .dot(transition_matrix.T)
+        + transition_covariance
     )
-    predicted_state_covariance2 = (
-        predicted_state_covariance2[:n_dim_state, :n_dim_state].T
-    )
-
-    return (predicted_state_mean, predicted_state_covariance2)
+    return (predicted_state_mean, predicted_state_covariance)
 
 
-def _filter_correct(observation_matrix, observation_covariance2,
+def _filter_correct_single(UDU, h, R):
+    """Correct predicted state covariance, calculate one column of the Kalman gain
+
+    Parameters
+    ----------
+    UDU : [n_dim_state, n_dim_state] array
+        UDU' decomposition of the covariance matrix for state at time t given
+        observations from time 0...t-1 and the first i-1 observations at time t
+    h : [n_dim_state] array
+        i-th row of observation matrix
+    R : float
+        covariance corresponding to the i-th coordinate of the observation
+
+    Returns
+    -------
+    corrected_state_covariance : n_dim_state UDU_decomposition
+        UDU' decomposition of the covariance matrix for state at time t given
+        observations from time 0...t-1 and the first i observations at time t
+    k : [n_dim_state] array
+        Kalman gain for i-th coordinate of the observation at time t
+
+    References
+    ----------
+    * Gibbs, Bruce P. Advanced Kalman Filtering, Least-Squares, and Modeling: A
+      Practical Handbook. Page 396
+    """
+    n_dim_state = len(h)
+
+    U = UDU.U
+    D = UDU.D
+    f = h.dot(U)            # len(f) == n_dim_state
+    g = np.diag(D).dot(f)   # len(g) == n_dim-state
+    alpha = f.dot(g) + R
+
+    gamma = np.zeros(n_dim_state)
+    U_bar = np.zeros((n_dim_state, n_dim_state))
+    D_bar = np.zeros(n_dim_state)
+    k = np.zeros(n_dim_state)
+
+    gamma[0] = R + g[0] * f[0]
+    D_bar[0] = D[0] * R / gamma[0]
+    k[0] = g[0]
+
+    U_bar[0, 0] = 1
+    for j in range(1, n_dim_state):
+        gamma[j] = gamma[j - 1] + g[j] * f[j]
+        D_bar[j] = D[j] * gamma[j - 1] / gamma[j]
+        U_bar[:, j] = U[:, j] - (f[j] / gamma[j - 1]) * k
+        k = k + g[j] * U[:, j]
+
+    return (UDU_decomposition(U_bar, D_bar), k / alpha)
+
+
+def _filter_correct(observation_matrix, observation_covariance,
                     observation_offset, predicted_state_mean,
-                    predicted_state_covariance2, observation):
+                    predicted_state_covariance, observation):
     r"""Correct a predicted state with a Kalman Filter update
 
     Incorporate observation `observation` from time `t` to turn
@@ -105,16 +259,17 @@ def _filter_correct(observation_matrix, observation_covariance2,
     ----------
     observation_matrix : [n_dim_obs, n_dim_state] array
         observation matrix for time t
-    observation_covariance2 : [n_dim_obs, n_dim_obs] array
-        square root of the covariance matrix for observation at time t
+    observation_covariance : n_dim_state UDU_decomposition
+        UDU' decomposition of observation covariance matrix for observation at
+        time t
     observation_offset : [n_dim_obs] array
         offset for observation at time t
     predicted_state_mean : [n_dim_state] array
         mean of state at time t given observations from times
         [0...t-1]
-    predicted_state_covariance2 : [n_dim_state, n_dim_state] array
-        square root of the covariance of state at time t given observations
-        from times [0...t-1]
+    predicted_state_covariance : n_dim_state UDU_decomposition
+        UDU' decomposition of the covariance of state at time t given
+        observations from times [0...t-1]
     observation : [n_dim_obs] array
         observation at time t.  If `observation` is a masked array and any of
         its values are masked, the observation will be ignored.
@@ -124,56 +279,48 @@ def _filter_correct(observation_matrix, observation_covariance2,
     corrected_state_mean : [n_dim_state] array
         mean of state at time t given observations from times
         [0...t]
-    corrected_state_covariance2 : [n_dim_state, n_dim_state] array
-        square root of the covariance of state at time t given observations
-        from times [0...t]
+    corrected_state_covariance : n_dim_state UDU_decomposition
+        UDU' decomposition of the covariance of state at time t given
+        observations from times [0...t]
 
     References
     ----------
-    * Salzmann, M. A. Some Aspects of Kalman Filtering. August 1988. Page 31.
+    * Gibbs, Bruce P. Advanced Kalman Filtering, Least-Squares, and Modeling: A
+      Practical Handbook. Page 394-396
     """
     if not np.any(np.ma.getmask(observation)):
         # extract size of state space
         n_dim_state = len(predicted_state_mean)
         n_dim_obs = len(observation)
 
-        # construct matrix M = [    R^{1/2}^{T},            0;
-        #                       (C S_{t|t-1})^T,  S_{t|t-1}^T]
-        M = np.zeros(2 * [n_dim_obs + n_dim_state])
-        M[0:n_dim_obs, 0:n_dim_obs] = observation_covariance2.T
-        M[n_dim_obs:, 0:n_dim_obs] = observation_matrix.dot(predicted_state_covariance2).T
-        M[n_dim_obs:, n_dim_obs:] = predicted_state_covariance2.T
+        # calculate corrected state mean, covariance
+        corrected_state_mean = predicted_state_mean
+        corrected_state_covariance = predicted_state_covariance
+        for i in range(n_dim_obs):
+            # extract components for updating i-th coordinate's covariance
+            o = observation[i]
+            b = observation_offset[i]
+            h = observation_matrix[i]
+            R = observation_covariance[i, i]
 
-        # solve for [((C P_{t|t-1} C^T + R)^{1/2})^T,         K^T;
-        #                                          0,   S_{t|t}^T] = QR(M)
-        (_, S) = linalg.qr(M)
-        kalman_gain = S[0:n_dim_obs,  n_dim_obs:].T
-        N = S[0:n_dim_obs, 0:n_dim_obs].T
+            # calculate new UDU' decomposition for corrected_state_covariance
+            # and a new column of the kalman gain
+            (corrected_state_covariance, k) = _filter_correct_single(corrected_state_covariance, h, R)
 
-        # correct mean
-        predicted_observation_mean = (
-            np.dot(observation_matrix,
-                   predicted_state_mean)
-            + observation_offset
-        )
-        corrected_state_mean = (
-            predicted_state_mean
-            + np.dot(kalman_gain,
-                     np.dot(linalg.pinv(N),
-                            observation - predicted_observation_mean)
-              )
-        )
+            # update corrected state mean
+            predicted_observation_mean = h.dot(corrected_state_mean) + b
+            corrected_state_mean = corrected_state_mean + k.dot(o - predicted_observation_mean)
 
-        corrected_state_covariance2 = S[n_dim_obs:, n_dim_obs:].T
     else:
-        n_dim_state = predicted_state_covariance2.shape[0]
-        n_dim_obs = observation_matrix.shape[0]
+        n_dim_state = len(predicted_state_mean)
+        n_dim_obs = len(observation)
+
         kalman_gain = np.zeros((n_dim_state, n_dim_obs))
 
         corrected_state_mean = predicted_state_mean
-        corrected_state_covariance2 = predicted_state_covariance2
+        corrected_state_covariance = predicted_state_covariance
 
-    return (corrected_state_mean, corrected_state_covariance2)
+    return (corrected_state_mean, corrected_state_covariance)
 
 
 def _filter(transition_matrices, observation_matrices, transition_covariance,
@@ -186,26 +333,25 @@ def _filter(transition_matrices, observation_matrices, transition_covariance,
 
     Parameters
     ----------
-    transition_matrices : [n_timesteps-1,n_dim_state,n_dim_state] or
-    [n_dim_state,n_dim_state] array-like
+    transition_matrices : [n_timesteps-1,n_dim_state,n_dim_state] or \
+    [n_dim_state,n_dim_state] array
         state transition matrices
     observation_matrices : [n_timesteps, n_dim_obs, n_dim_obs] or [n_dim_obs, \
-    n_dim_obs] array-like
+    n_dim_obs] array
         observation matrix
-    transition_covariance : [n_timesteps-1,n_dim_state,n_dim_state] or
-    [n_dim_state,n_dim_state] array-like
+    transition_covariance : [n_dim_state, n_dim_state] array
         state transition covariance matrix
-    observation_covariance : [n_timesteps, n_dim_obs, n_dim_obs] or [n_dim_obs,
-    n_dim_obs] array-like
+    observation_covariance : [n_timesteps, n_dim_obs, n_dim_obs] or \
+    [n_dim_obs, n_dim_obs] array
         observation covariance matrix
     transition_offsets : [n_timesteps-1, n_dim_state] or [n_dim_state] \
-    array-like
+    array
         state offset
-    observation_offsets : [n_timesteps, n_dim_obs] or [n_dim_obs] array-like
+    observation_offsets : [n_timesteps, n_dim_obs] or [n_dim_obs] array
         observations for times [0...n_timesteps-1]
-    initial_state_mean : [n_dim_state] array-like
+    initial_state_mean : [n_dim_state] array
         mean of initial state distribution
-    initial_state_covariance : [n_dim_state, n_dim_state] array-like
+    initial_state_covariance : [n_dim_state, n_dim_state] array
         covariance of initial state distribution
     observations : [n_timesteps, n_dim_obs] array
         observations from times [0...n_timesteps-1].  If `observations` is a
@@ -217,110 +363,80 @@ def _filter(transition_matrices, observation_matrices, transition_covariance,
     predicted_state_means : [n_timesteps, n_dim_state] array
         `predicted_state_means[t]` = mean of hidden state at time t given
         observations from times [0...t-1]
-    predicted_state_covariance2s : [n_timesteps, n_dim_state, n_dim_state] array
-        `predicted_state_covariance2s[t]` = lower triangular factorization of
-        the covariance of hidden state at time t given observations from times
-        [0...t-1]
+    predicted_state_covariances : [n_timesteps] array of n_dim_state \
+    UDU_decompositions
+        `predicted_state_covariances[t]` = UDU' decomposition of the covariance
+        of hidden state at time t given observations from times [0...t-1]
     filtered_state_means : [n_timesteps, n_dim_state] array
         `filtered_state_means[t]` = mean of hidden state at time t given
         observations from times [0...t]
-    filtered_state_covariance2s : [n_timesteps, n_dim_state] array
-        `filtered_state_covariance2s[t]` = lower triangular factorization of
-        the covariance of hidden state at time t given observations from times
-        [0...t]
+    filtered_state_covariances : [n_timesteps] array of n_dim_state \
+    UDU_decompositions
+        `filtered_state_covariances[t]` = UDU' decomposition of the covariance
+        of hidden state at time t given observations from times [0...t]
     """
     n_timesteps = observations.shape[0]
     n_dim_state = len(initial_state_mean)
     n_dim_obs = observations.shape[1]
 
+    # construct containers for outputs
     predicted_state_means = np.zeros((n_timesteps, n_dim_state))
-    predicted_state_covariance2s = np.zeros(
-        (n_timesteps, n_dim_state, n_dim_state)
+    predicted_state_covariances = np.zeros(
+        n_timesteps, dtype=object
     )
     filtered_state_means = np.zeros((n_timesteps, n_dim_state))
-    filtered_state_covariance2s = np.zeros(
-        (n_timesteps, n_dim_state, n_dim_state)
+    filtered_state_covariances = np.zeros(
+        n_timesteps, dtype=object
     )
-    transition_covariance2 = linalg.cholesky(transition_covariance, lower=True)
-    observation_covariance2 = linalg.cholesky(observation_covariance, lower=True)
-    initial_state_covariance2 = linalg.cholesky(initial_state_covariance, lower=True)
+
+    # initialize filter
+    initial_state_covariance = udu(initial_state_covariance)
+    (observation_matrices, observation_offsets,
+     observation_covariance, observations) = (
+        decorrelate_observations(
+            observation_matrices,
+            observation_offsets,
+            observation_covariance,
+            observations
+        )
+    )
 
     for t in range(n_timesteps):
         if t == 0:
             predicted_state_means[t] = initial_state_mean
-            predicted_state_covariance2s[t] = initial_state_covariance2
+            predicted_state_covariances[t] = initial_state_covariance
         else:
             transition_matrix = _last_dims(transition_matrices, t - 1)
             transition_offset = _last_dims(transition_offsets, t - 1, ndims=1)
-            predicted_state_means[t], predicted_state_covariance2s[t] = (
+            predicted_state_means[t], predicted_state_covariances[t] = (
                 _filter_predict(
                     transition_matrix,
-                    transition_covariance2,
+                    transition_covariance,
                     transition_offset,
                     filtered_state_means[t - 1],
-                    filtered_state_covariance2s[t - 1]
+                    filtered_state_covariances[t - 1]
                 )
             )
 
         observation_matrix = _last_dims(observation_matrices, t)
         observation_offset = _last_dims(observation_offsets, t, ndims=1)
-        (filtered_state_means[t], filtered_state_covariance2s[t]) = (
+        (filtered_state_means[t], filtered_state_covariances[t]) = (
             _filter_correct(
                 observation_matrix,
-                observation_covariance2,
+                observation_covariance,
                 observation_offset,
                 predicted_state_means[t],
-                predicted_state_covariance2s[t],
+                predicted_state_covariances[t],
                 observations[t]
             )
         )
 
-    return (predicted_state_means, predicted_state_covariance2s,
-            filtered_state_means, filtered_state_covariance2s)
+    return (predicted_state_means, predicted_state_covariances,
+            filtered_state_means, filtered_state_covariances)
 
 
-class KalmanFilter(KalmanFilter):
-    """Implements the Kalman Filter, Kalman Smoother, and EM algorithm.
-
-    This class implements the Kalman Filter, Kalman Smoother, and EM Algorithm
-    for a Linear Gaussian model specified by,
-
-    .. math::
-
-        x_{t+1}   &= A_{t} x_{t} + b_{t} + \\text{Normal}(0, Q_{t}) \\\\
-        z_{t}     &= C_{t} x_{t} + d_{t} + \\text{Normal}(0, R_{t})
-
-    The Kalman Filter is an algorithm designed to estimate
-    :math:`P(x_t | z_{0:t})`.  As all state transitions and observations are
-    linear with Gaussian distributed noise, these distributions can be
-    represented exactly as Gaussian distributions with mean
-    `filtered_state_means[t]` and covariances `filtered_state_covariances[t]`.
-
-    Similarly, the Kalman Smoother is an algorithm designed to estimate
-    :math:`P(x_t | z_{0:T-1})`.
-
-    The EM algorithm aims to find for
-    :math:`\\theta = (A, b, C, d, Q, R, \\mu_0, \\Sigma_0)`
-
-    .. math::
-
-        \\max_{\\theta} P(z_{0:T-1}; \\theta)
-
-    If we define :math:`L(x_{0:T-1},\\theta) = \\log P(z_{0:T-1}, x_{0:T-1};
-    \\theta)`, then the EM algorithm works by iteratively finding,
-
-    .. math::
-
-        P(x_{0:T-1} | z_{0:T-1}, \\theta_i)
-
-    then by maximizing,
-
-    .. math::
-
-        \\theta_{i+1} = \\arg\\max_{\\theta}
-            \\mathbb{E}_{x_{0:T-1}} [
-                L(x_{0:T-1}, \\theta)| z_{0:T-1}, \\theta_i
-            ]
+class BiermanKalmanFilter(KalmanFilter):
+    """Kalman Filter based on UDU' decomposition
 
     Parameters
     ----------
@@ -405,7 +521,7 @@ class KalmanFilter(KalmanFilter):
         )
 
         (_, _, filtered_state_means,
-         filtered_state_covariance2s) = (
+         filtered_state_covariances) = (
             _filter(
                 transition_matrices, observation_matrices,
                 transition_covariance, observation_covariance,
@@ -416,7 +532,7 @@ class KalmanFilter(KalmanFilter):
         )
 
         filtered_state_covariances = (
-            _reconstruct_covariances(filtered_state_covariance2s)
+            _reconstruct_covariances(filtered_state_covariances)
         )
 
         return (filtered_state_means, filtered_state_covariances)
@@ -513,32 +629,41 @@ class KalmanFilter(KalmanFilter):
         else:
             observation = np.ma.asarray(observation)
 
-        # turn covariance into cholesky factorizations
-        transition_covariance2 = linalg.cholesky(transition_covariance, lower=True)
-        observation_covariance2 = linalg.cholesky(observation_covariance, lower=True)
-        filtered_state_covariance2 = linalg.cholesky(filtered_state_covariance, lower=True)
+        # transform filtered_state_covariance into its UDU decomposition
+        filtered_state_covariance = udu(filtered_state_covariance)
+
+        # decorrelate observations
+        (observation_matrix, observation_offset,
+         observation_covariance, observation) = (
+            decorrelate_observations(
+                observation_matrix,
+                observation_offset,
+                observation_covariance,
+                observation
+            )
+        )
 
         # predict
-        predicted_state_mean, predicted_state_covariance2 = (
+        predicted_state_mean, predicted_state_covariance = (
             _filter_predict(
-                transition_matrix, transition_covariance2,
+                transition_matrix, transition_covariance,
                 transition_offset, filtered_state_mean,
-                filtered_state_covariance2
+                filtered_state_covariance
             )
         )
 
         # correct
-        (next_filtered_state_mean, next_filtered_state_covariance2) = (
+        (next_filtered_state_mean, next_filtered_state_covariance) = (
             _filter_correct(
-                observation_matrix, observation_covariance2,
+                observation_matrix, observation_covariance,
                 observation_offset, predicted_state_mean,
-                predicted_state_covariance2, observation
+                predicted_state_covariance, observation
             )
         )
 
         # reconstruct actual covariance
         next_filtered_state_covariance = (
-            _reconstruct_covariances(next_filtered_state_covariance2)
+            _reconstruct_covariances(next_filtered_state_covariance)
         )
 
         return (next_filtered_state_mean, next_filtered_state_covariance)
@@ -575,8 +700,8 @@ class KalmanFilter(KalmanFilter):
         )
 
         # run filter
-        (predicted_state_means, predicted_state_covariance2s,
-         filtered_state_means, filtered_state_covariance2s) = (
+        (predicted_state_means, predicted_state_covariances,
+         filtered_state_means, filtered_state_covariances) = (
             _filter(
                 transition_matrices, observation_matrices,
                 transition_covariance, observation_covariance,
@@ -587,10 +712,10 @@ class KalmanFilter(KalmanFilter):
 
         # construct actual covariance matrices
         predicted_state_covariances = (
-            _reconstruct_covariances(predicted_state_covariance2s)
+            _reconstruct_covariances(predicted_state_covariances)
         )
         filtered_state_covariances = (
-            _reconstruct_covariances(filtered_state_covariance2s)
+            _reconstruct_covariances(filtered_state_covariances)
         )
 
         (smoothed_state_means, smoothed_state_covariances) = (
@@ -664,8 +789,8 @@ class KalmanFilter(KalmanFilter):
         # Actual EM iterations
         for i in range(n_iter):
             # run filter
-            (predicted_state_means, predicted_state_covariance2s,
-             filtered_state_means, filtered_state_covariance2s) = (
+            (predicted_state_means, predicted_state_covariances,
+             filtered_state_means, filtered_state_covariances) = (
                 _filter(
                     self.transition_matrices, self.observation_matrices,
                     self.transition_covariance, self.observation_covariance,
@@ -677,10 +802,10 @@ class KalmanFilter(KalmanFilter):
 
             # reconstruct covariances
             filtered_state_covariances = (
-                _reconstruct_covariances(filtered_state_covariance2s)
+                _reconstruct_covariances(filtered_state_covariances)
             )
             predicted_state_covariances = (
-                _reconstruct_covariances(predicted_state_covariance2s)
+                _reconstruct_covariances(predicted_state_covariances)
             )
 
             # run smoother
@@ -733,8 +858,8 @@ class KalmanFilter(KalmanFilter):
         )
 
         # apply the Kalman Filter
-        (predicted_state_means, predicted_state_covariance2s,
-         filtered_state_means, filtered_state_covariance2s) = (
+        (predicted_state_means, predicted_state_covariances,
+         filtered_state_means, filtered_state_covariances) = (
             _filter(
                 transition_matrices, observation_matrices,
                 transition_covariance, observation_covariance,
@@ -746,7 +871,7 @@ class KalmanFilter(KalmanFilter):
 
         # get likelihoods for each time step
         predicted_state_covariances = (
-            _reconstruct_covariances(predicted_state_covariance2s)
+            _reconstruct_covariances(predicted_state_covariances)
         )
         loglikelihoods = _loglikelihoods(
           observation_matrices, observation_offsets, observation_covariance,
