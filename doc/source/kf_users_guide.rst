@@ -285,7 +285,7 @@ generated in the following way,
 
     x_0               & \sim \text{Gaussian}(\mu_0, \Sigma_0)   \\
     x_{t+1}           & = A_t x_t + b_t + \epsilon_{t+1}^{1}    \\
-    y_{t}             & = C_t x_t + d_t + \epsilon_{t}^2        \\
+    z_{t}             & = C_t x_t + d_t + \epsilon_{t}^2        \\
     \epsilon_t^1      & \sim \text{Gaussian}(0, Q)              \\
     \epsilon_{t}^2    & \sim \text{Gaussian}(0, R)
 

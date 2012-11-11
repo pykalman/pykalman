@@ -37,9 +37,9 @@ In order to apply these algorithms, one must specify a subset of the following,
     +---------------------------------------+--------------------------------+---------------------+
     | Variable Name                         | Mathematical Notation          | Default             |
     +---------------------------------------+--------------------------------+---------------------+
-    | :attr:`transition_functions`          | :math:`f_t`                    | state plus noise    |
+    | :attr:`transition_functions[t]`       | :math:`f_t`                    | state plus noise    |
     +---------------------------------------+--------------------------------+---------------------+
-    | :attr:`observation_functions`         | :math:`g_t`                    | state plus noise    |
+    | :attr:`observation_functions[t]`      | :math:`g_t`                    | state plus noise    |
     +---------------------------------------+--------------------------------+---------------------+
     | :attr:`transition_covariance`         | :math:`Q`                      | identity            |
     +---------------------------------------+--------------------------------+---------------------+
@@ -79,11 +79,16 @@ estimated state and covariance matrices over the hidden state::
     >>> def g(state, noise):
     ...     return state + np.cos(noise)
     ...
-    >>> ukf = UnscentedKalmanFilter(f, g, R=0.1)
+    >>> ukf = UnscentedKalmanFilter(f, g, observation_covariance=0.1)
     >>> ukf.smooth([0, 1, 2])[0]
     array([[-0.94034641],
            [ 0.05002316],
            [ 1.04502498]])
+
+Methods for online estimation are also included::
+
+    >>> means, covariances = ukf.filter([0,1])
+    >>> next_mean, next_covariance = ukf.filter_update(means[-1], covariances[-1], [2])
 
 If the :class:`UnscentedKalmanFilter` is instantiated with an array of
 functions for :attr:`transition_functions` or :attr:`observation_functions`,
@@ -168,3 +173,58 @@ Missing Measurements
 The :class:`UnscentedKalmanFilter` and :class:`AdditiveUnscentedKalmanFilter`
 have the same support for missing measurements that the original
 :class:`KalmanFilter` class supports. Usage is precisely the same.
+
+
+Mathematical Formulation
+========================
+
+The mathematical formulation of the model the Unscented Kalman Filter is based
+on is unsurprisingly similar to that of the standard Kalman Filter. In this
+section, we will again adopt the notation :math:`x_t` to describe the (unknown)
+state at time step :math:`t` and :math:`z_t` to denote the (known) observation.
+The parameters of the Unscented Kalman Filter are as follows,
+
+    +-----------------------------+------------------+
+    | Parameter Name              | Notation         |
+    +-----------------------------+------------------+
+    | `transition_functions`      | :math:`f`        |
+    +-----------------------------+------------------+
+    | `observation_functions`     | :math:`g`        |
+    +-----------------------------+------------------+
+    | `transition_covariance`     | :math:`Q`        |
+    +-----------------------------+------------------+
+    | `observation_covariance`    | :math:`R`        |
+    +-----------------------------+------------------+
+    | `initial_state_mean`        | :math:`\mu_0`    |
+    +-----------------------------+------------------+
+    | `initial_state_covariance`  | :math:`\Sigma_0` |
+    +-----------------------------+------------------+
+
+
+To estimate :math:`x_t` using the above and :math:`z_t`, we must describe how
+these parameters effect :math:`x_t` and :math:`z_t`.  The two models used, as
+implemented by :class:`AdditiveUnscentedKalmanFilter` and
+:class:`UnscentedKalmanFilter` respectively are as follows,
+
+In the case of the additive noise model,
+
+.. math::
+
+    x_0               & \sim \text{Gaussian}(\mu_0, \Sigma_0)   \\
+    x_{t+1}           & = f_t(x_t) + \epsilon_{t+1}^{1}         \\
+    z_{t}             & = g_t(x_t) + \epsilon_{t}^2             \\
+    \epsilon_t^1      & \sim \text{Gaussian}(0, Q)              \\
+    \epsilon_{t}^2    & \sim \text{Gaussian}(0, R)
+
+The general model is nearly the same, except with the following modifications,
+
+.. math::
+
+    x_{t+1}           & = f_t(x_t, \epsilon_{t+1}^1)            \\
+    z_{t}             & = g_t(x_t, \epsilon_{t}^2)
+
+In the standard Kalman Filter case, we could be certain that the probability
+distribution over :math:`x_t` is always a Gaussian distribution, even after
+observing :math:`z_t`. In the above scenarios that is no longer the case, but
+we make the *approximation* that it is. If :math:`f_t` and :math:`g_t` are
+*almost* linear, then the Unscented Kalman Filter will be a good approximation.

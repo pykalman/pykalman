@@ -29,7 +29,7 @@ DIM = {
 
 def _arg_or_default(arg, default, dim, name):
     if arg is None:
-        result = default
+        result = np.asarray(default)
     else:
         result = arg
     if len(result.shape) > dim:
