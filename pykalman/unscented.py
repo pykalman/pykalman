@@ -30,11 +30,11 @@ Moments = namedtuple('Moments', ['mean', 'covariance'])
 
 
 def points2moments(points, sigma_noise=None):
-    '''Calculate the weighted mean and covariance of `points`
+    '''Calculate estimated mean and covariance of sigma points
 
     Parameters
     ----------
-    points : SigmaPoints of size [2 * n_dim_state + 1, n_dim_state]
+    points : [2 * n_dim_state + 1, n_dim_state] SigmaPoints
         SigmaPoints object containing points and weights
     sigma_noise : [n_dim_state, n_dim_state] array
         additive noise covariance matrix, if any
@@ -105,6 +105,10 @@ def moments2points(moments, alpha=1e-3, beta=2.0, kappa=0.0):
 
 def unscented_transform(points, f=None, points_noise=None, sigma_noise=None):
     '''Apply the Unscented Transform to a set of points
+
+    Apply f to points (with secondary argument points_noise, if available),
+    then approximate the resulting mean and covariance. If sigma_noise is
+    available, treat it as additional variance due to additive noise.
 
     Parameters
     ==========
@@ -192,7 +196,7 @@ def unscented_correct(cross_sigma, moments_pred, obs_moments_pred, z):
 
 
 def augmented_points(momentses):
-    '''Calculate sigma points using augmentation
+    '''Calculate sigma points for augmented UKF
 
     Parameters
     ----------
@@ -232,9 +236,35 @@ def augmented_points(momentses):
 
 
 def augmented_unscented_filter_points(mean_state, covariance_state,
-                                       covariance_transition,
-                                       covariance_observation):
-    """Extract sigma points using augmented state representation"""
+                                      covariance_transition,
+                                      covariance_observation):
+    """Extract sigma points using augmented state representation
+
+    Primarily used as a pre-processing step before predicting and updating in
+    the Augmented UKF.
+
+    Parameters
+    ----------
+    mean_state : [n_dim_state] array
+        mean of state at time t given observations from time steps 0...t
+    covariance_state : [n_dim_state, n_dim_state] array
+        covariance of state at time t given observations from time steps 0...t
+    covariance_transition : [n_dim_state, n_dim_state] array
+        covariance of zero-mean noise resulting from transitioning from time
+        step t to t+1
+    covariance_observation : [n_dim_obs, n_dim_obs] array
+        covariance of zero-mean noise resulting from observation state at time
+        t+1
+
+    Returns
+    -------
+    points_state : [2 * n_dim_state + 1, n_dim_state] SigmaPoints
+        sigma points for state at time t
+    points_transition : [2 * n_dim_state + 1, n_dim_state] SigmaPoints
+        sigma points for transition noise between time t and t+1
+    points_observation : [2 * n_dim_state + 1, n_dim_obs] SigmaPoints
+        sigma points for observation noise at time step t+1
+    """
     # get sizes of dimensions
     n_dim_state = covariance_state.shape[0]
     n_dim_obs = covariance_observation.shape[0]
@@ -258,22 +288,87 @@ def augmented_unscented_filter_points(mean_state, covariance_state,
     return (points_state, points_transition, points_observation)
 
 
-def augmented_unscented_filter_predict(transition_function, points_state,
-                                        points_transition):
+def unscented_filter_predict(transition_function, points_state,
+                             points_transition=None,
+                             sigma_transition=None):
+    """Predict next state distribution
+
+    Using the sigma points representing the state at time t given observations
+    from time steps 0...t, calculate the predicted mean, covariance, and sigma
+    points for the state at time t+1.
+
+    Parameters
+    ----------
+    transition_function : function
+        function describing how the state changes between times t and t+1
+    points_state : [2*n_dim_state+1, n_dim_state] SigmaPoints
+        sigma points corresponding to the state at time step t given
+        observations from time steps 0...t
+    points_transition : [2*n_dim_state+1, n_dim_state] SigmaPoints
+        sigma points corresponding to the noise in transitioning from time step
+        t to t+1, if available. If not, assumes that noise is additive
+    sigma_transition : [n_dim_state, n_dim_state] array
+        covariance corresponding to additive noise in transitioning from time
+        step t to t+1, if available. If not, assumes noise is not additive.
+
+    Returns
+    -------
+    points_pred : [2*n_dim_state+1, n_dim_state] SigmaPoints
+        sigma points corresponding to state at time step t+1 given observations
+        from time steps 0...t. These points have not been "standardized" by the
+        unscented transform yet.
+    moments_pred : [n_dim_state] Moments
+        mean and covariance corresponding to time step t+1 given observations
+        from time steps 0...t
+    """
+    assert points_transition is not None or sigma_transition is not None, \
+        "Your system is noiseless? really?"
     (points_pred, moments_pred) = (
         unscented_transform(
-            points_state, transition_function, points_noise=points_transition
+            points_state, transition_function,
+            points_noise=points_transition, sigma_noise=sigma_transition
         )
     )
     return (points_pred, moments_pred)
 
 
-def augmented_unscented_filter_correct(observation_function, moments_pred,
-                                        points_pred, points_observation,
-                                        observation):
+def unscented_filter_correct(observation_function, moments_pred,
+                             points_pred, observation,
+                             points_observation=None,
+                             sigma_observation=None):
+    """Integrate new observation to correct state estimates
+
+    Parameters
+    ----------
+    observation_function : function
+        function characterizing how the observation at time t+1 is generated
+    moments_pred : [n_dim_state] Moments
+        mean and covariance of state at time t+1 given observations from time
+        steps 0...t
+    points_pred : [2*n_dim_state+1, n_dim_state] SigmaPoints
+        sigma points corresponding to moments_pred
+    observation : [n_dim_state] array
+        observation at time t+1. If masked, treated as missing.
+    points_observation : [2*n_dim_state, n_dim_obs] SigmaPoints
+        sigma points corresponding to predicted observation at time t+1 given
+        observations from times 0...t, if available. If not, noise is assumed
+        to be additive.
+    sigma_observation : [n_dim_obs, n_dim_obs] array
+        covariance matrix corresponding to additive noise in observation at
+        time t+1, if available. If missing, noise is assumed to be non-linear.
+
+    Returns
+    -------
+    moments_filt : [n_dim_state] Moments
+        mean and covariance of state at time t+1 given observations from time
+        steps 0...t+1
+    """
     # Calculate E[z_t | z_{0:t-1}], Var(z_t | z_{0:t-1})
     (obs_points_pred, obs_moments_pred) = (
-        unscented_transform(points_pred, observation_function, points_noise=points_observation)
+        unscented_transform(
+            points_pred, observation_function,
+            points_noise=points_observation, sigma_noise=sigma_observation
+        )
     )
 
     # Calculate Cov(x_t, z_t | z_{0:t-1})
@@ -343,21 +438,23 @@ def augmented_unscented_filter(mu_0, sigma_0, f, g, Q, R, Z):
         # Calculate E[x_t | z_{0:t-1}], Var(x_t | z_{0:t-1}) and sigma points
         # for P(x_t | z_{0:t-1})
         if t == 0:
-            (points_pred, moments_pred) = unscented_transform(points_state)
+            points_pred = points_state
+            moments_pred = points2moments(points_pred)
         else:
             transition_function = _last_dims(f, t - 1, ndims=1)[0]
             (points_pred, moments_pred) = (
-                augmented_unscented_filter_predict(
-                    transition_function, points_state, points_transition
+                unscented_filter_predict(
+                    transition_function, points_state,
+                    points_transition=points_transition
                 )
             )
 
         # Calculate E[z_t | z_{0:t-1}], Var(z_t | z_{0:t-1})
         observation_function = _last_dims(g, t, ndims=1)[0]
         mu_filt[t], sigma_filt[t] = (
-            augmented_unscented_filter_correct(
+            unscented_filter_correct(
                 observation_function, moments_pred, points_pred,
-                points_observation, Z[t]
+                Z[t], points_observation=points_observation
             )
         )
 
@@ -488,28 +585,25 @@ def additive_unscented_filter(mu_0, sigma_0, f, g, Q, R, Z):
 
         # Calculate E[x_t | z_{0:t-1}], Var(x_t | z_{0:t-1})
         if t == 0:
-            (points_pred, moments_pred) = unscented_transform(points_state)
+            points_pred = points_state
+            moments_pred = points2moments(points_pred)
         else:
-            f_t1 = _last_dims(f, t - 1, ndims=1)[0]
-            moments_pred = unscented_transform(points_state, f_t1, sigma_noise=Q)[1]
+            transition_function = _last_dims(f, t - 1, ndims=1)[0]
+            (_, moments_pred) = (
+                unscented_filter_predict(
+                    transition_function, points_state, sigma_transition=Q
+                )
+            )
             points_pred = moments2points(moments_pred)
 
-        # Calculate E[z_t | z_{0:t-1}], Var(z_t | z_{0:t-1})
-        g_t = _last_dims(g, t, ndims=1)[0]
-        (obs_points_pred, obs_moments_pred) = unscented_transform(
-            points_pred, g_t, sigma_noise=R
-        )
-
-        # Calculate Cov(x_t, z_t | z_{0:t-1})
-        sigma_pair = (
-            (points_pred.points - moments_pred.mean).T
-            .dot(np.diag(points_pred.weights_covariance))
-            .dot(obs_points_pred.points - obs_moments_pred.mean)
-        )
-
         # Calculate E[x_t | z_{0:t}], Var(x_t | z_{0:t})
-        moments_filtered = unscented_correct(sigma_pair, moments_pred, obs_moments_pred, Z[t])
-        (mu_filt[t], sigma_filt[t]) = moments_filtered
+        observation_function = _last_dims(g, t, ndims=1)[0]
+        mu_filt[t], sigma_filt[t] = (
+            unscented_filter_correct(
+                observation_function, moments_pred, points_pred,
+                Z[t], sigma_observation=R
+            )
+        )
 
     return (mu_filt, sigma_filt)
 
@@ -907,16 +1001,16 @@ class UnscentedKalmanFilter(UnscentedMixin):
 
         # predict
         (points_pred, moments_pred) = (
-            augmented_unscented_filter_predict(
+            unscented_filter_predict(
                 transition_function, points_state, points_transition
             )
         )
 
         # correct
         next_filtered_state_mean, next_filtered_state_covariance = (
-            augmented_unscented_filter_correct(
+            unscented_filter_correct(
                 observation_function, moments_pred, points_pred,
-                points_observation, observation
+                observation, points_observation=points_observation
             )
         )
 
@@ -1106,6 +1200,112 @@ class AdditiveUnscentedKalmanFilter(UnscentedMixin):
         )
 
         return (filtered_state_means, filtered_state_covariances)
+
+    def filter_update(self,
+                      filtered_state_mean, filtered_state_covariance,
+                      observation=None,
+                      transition_function=None, transition_covariance=None,
+                      observation_function=None, observation_covariance=None):
+        r"""Update a Kalman Filter state estimate
+
+        Perform a one-step update to estimate the state at time :math:`t+1`
+        give an observation at time :math:`t+1` and the previous estimate for
+        time :math:`t` given observations from times :math:`[0...t]`.  This
+        method is useful if one wants to track an object with streaming
+        observations.
+
+        Parameters
+        ----------
+        filtered_state_mean : [n_dim_state] array
+            mean estimate for state at time t given observations from times
+            [1...t]
+        filtered_state_covariance : [n_dim_state, n_dim_state] array
+            covariance of estimate for state at time t given observations from
+            times [1...t]
+        observation : [n_dim_obs] array or None
+            observation from time t+1.  If `observation` is a masked array and
+            any of `observation`'s components are masked or if `observation` is
+            None, then `observation` will be treated as a missing observation.
+        transition_function : optional, function
+            state transition function from time t to t+1.  If unspecified,
+            `self.transition_functions` will be used.
+        transition_covariance : optional, [n_dim_state, n_dim_state] array
+            state transition covariance from time t to t+1.  If unspecified,
+            `self.transition_covariance` will be used.
+        observation_function : optional, function
+            observation function at time t+1.  If unspecified,
+            `self.observation_functions` will be used.
+        observation_covariance : optional, [n_dim_obs, n_dim_obs] array
+            observation covariance at time t+1.  If unspecified,
+            `self.observation_covariance` will be used.
+
+        Returns
+        -------
+        next_filtered_state_mean : [n_dim_state] array
+            mean estimate for state at time t+1 given observations from times
+            [1...t+1]
+        next_filtered_state_covariance : [n_dim_state, n_dim_state] array
+            covariance of estimate for state at time t+1 given observations
+            from times [1...t+1]
+        """
+        # initialize parameters
+        (transition_functions, observation_functions,
+         transition_cov, observation_cov,
+         _, _) = (
+            self._initialize_parameters()
+        )
+
+        def default_function(f, arr):
+            if f is None:
+                assert len(arr) == 1
+                f = arr[0]
+            return f
+
+        transition_function = default_function(
+            transition_function, transition_functions
+        )
+        observation_function = default_function(
+            observation_function, observation_functions
+        )
+        transition_covariance = _arg_or_default(
+            transition_covariance, transition_cov,
+            2, "transition_covariance"
+        )
+        observation_covariance = _arg_or_default(
+            observation_covariance, observation_cov,
+            2, "observation_covariance"
+        )
+
+        # Make a masked observation if necessary
+        if observation is None:
+            n_dim_obs = observation_covariance.shape[0]
+            observation = np.ma.array(np.zeros(n_dim_obs))
+            observation.mask = True
+        else:
+            observation = np.ma.asarray(observation)
+
+        # make sigma poins
+        moments_state = Moments(filtered_state_mean, filtered_state_covariance)
+        points_state = moments2points(moments_state)
+
+        # predict
+        (_, moments_pred) = (
+            unscented_filter_predict(
+                transition_function, points_state,
+                sigma_transition=transition_covariance
+            )
+        )
+        points_pred = moments2points(moments_pred)
+
+        # correct
+        (next_filtered_state_mean, next_filtered_state_covariance) = (
+            unscented_filter_correct(
+                observation_function, moments_pred, points_pred,
+                observation, sigma_observation=observation_covariance
+            )
+        )
+
+        return (next_filtered_state_mean, next_filtered_state_covariance)
 
     def smooth(self, Z):
         '''Run Unscented Kalman Smoother

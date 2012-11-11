@@ -184,6 +184,24 @@ def test_additive_filter():
     )
 
 
+def test_additive_filter_update():
+    kf = build_unscented_filter(AdditiveUnscentedKalmanFilter)
+    Z = ma.array([0, 1, 2, 3], mask=[True, False, False, False])
+
+    mu_filt, sigma_filt = kf.filter(Z)
+    mu_filt2, sigma_filt2 = np.zeros(mu_filt.shape), np.zeros(sigma_filt.shape)
+    for t in range(mu_filt.shape[0] - 1):
+        if t == 0:
+            mu_filt2[t] = mu_filt[0]
+            sigma_filt2[t] = sigma_filt[t]
+        mu_filt2[t + 1], sigma_filt2[t + 1] = (
+            kf.filter_update(mu_filt2[t], sigma_filt2[t], Z[t + 1])
+        )
+
+    assert_array_almost_equal(mu_filt, mu_filt2)
+    assert_array_almost_equal(sigma_filt, sigma_filt2)
+
+
 def test_additive_smoother():
     # true unscented mean, covariance, as calculated by a MATLAB urts_smooth1
     # available in http://becs.aalto.fi/en/research/bayes/ekfukf/
