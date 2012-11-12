@@ -12,7 +12,7 @@ import numpy as np
 from numpy import ma
 from scipy import linalg
 
-from .utils import array1d, array2d, check_random_state
+from .utils import array1d, array2d, check_random_state, get_params, preprocess_arguments
 
 from .standard import _last_dims, _determine_dimensionality, _arg_or_default
 
@@ -687,6 +687,19 @@ class UnscentedMixin(object):
             initial_state_mean=None, initial_state_covariance=None,
             n_dim_state=None, n_dim_obs=None, random_state=None):
 
+        # determine size of state and observation space
+        n_dim_state = _determine_dimensionality(
+            [(transition_covariance, array2d, -2),
+             (initial_state_covariance, array2d, -2),
+             (initial_state_mean, array1d, -1)],
+            n_dim_state
+        )
+        n_dim_obs = _determine_dimensionality(
+            [(observation_covariance, array2d, -2)],
+            n_dim_obs
+        )
+
+        # set parameters
         self.transition_functions = transition_functions
         self.observation_functions = observation_functions
         self.transition_covariance = transition_covariance
@@ -700,52 +713,19 @@ class UnscentedMixin(object):
     def _initialize_parameters(self):
         """Retrieve parameters if they exist, else replace with defaults"""
 
-        # determine size of state and observation space
-        n_dim_state = _determine_dimensionality(
-            [(self.transition_covariance, array2d, -2),
-             (self.initial_state_covariance, array2d, -2),
-             (self.initial_state_mean, array1d, -1)],
-            self.n_dim_state
-        )
-        n_dim_obs = _determine_dimensionality(
-            [(self.observation_covariance, array2d, -2)],
-            self.n_dim_obs
-        )
+        arguments = get_params(self)
+        defaults = self._default_parameters()
+        converters = self._converters()
 
-        # initialize parameters
-        transition_functions = (
-            array1d(lambda state, noise: state + noise)
-            if self.transition_functions is None
-            else array1d(self.transition_functions)
+        processed =  preprocess_arguments([arguments, defaults], converters)
+        return (
+            processed['transition_functions'],
+            processed['observation_functions'],
+            processed['transition_covariance'],
+            processed['observation_covariance'],
+            processed['initial_state_mean'],
+            processed['initial_state_covariance']
         )
-        transition_covariance = (
-            np.eye(n_dim_state)
-            if self.transition_covariance is None
-            else array2d(self.transition_covariance)
-        )
-        observation_functions = (
-            array1d(lambda state, noise: state + noise)
-            if self.observation_functions is None
-            else array1d(self.observation_functions)
-        )
-        observation_covariance = (
-            np.eye(n_dim_obs)
-            if self.observation_covariance is None
-            else array2d(self.observation_covariance)
-        )
-        initial_state_mean = (
-            np.zeros(n_dim_state)
-            if self.initial_state_mean is None
-            else array1d(self.initial_state_mean)
-        )
-        initial_state_covariance = (
-            np.eye(n_dim_state)
-            if self.initial_state_covariance is None
-            else array2d(self.initial_state_covariance)
-        )
-        return (transition_functions, observation_functions,
-            transition_covariance, observation_covariance,
-            initial_state_mean, initial_state_covariance)
 
     def _parse_observations(self, obs):
         """Safely convert observations to their expected format"""
@@ -753,6 +733,19 @@ class UnscentedMixin(object):
         if obs.shape[0] == 1 and obs.shape[1] > 1:
             obs = obs.T
         return obs
+
+    def _converters(self):
+        return {
+            'transition_functions': array1d,
+            'observation_functions': array1d,
+            'transition_covariance': array2d,
+            'observation_covariance': array2d,
+            'initial_state_mean': array1d,
+            'initial_state_covariance': array2d,
+            'n_dim_state': int,
+            'n_dim_obs': int,
+            'random_state': int,
+        }
 
 
 class UnscentedKalmanFilter(UnscentedMixin):
@@ -1052,6 +1045,17 @@ class UnscentedKalmanFilter(UnscentedMixin):
         )
 
         return (smoothed_state_means, smoothed_state_covariances)
+
+    def _default_parameters(self):
+        return {
+            'transition_functions': lambda state, noise: state + noise,
+            'observation_functions': lambda state, noise: state + noise,
+            'transition_covariance': np.eye(self.n_dim_state),
+            'observation_covariance': np.eye(self.n_dim_obs),
+            'initial_state_mean': np.zeros(self.n_dim_state),
+            'initial_state_covariance': np.eye(self.n_dim_state),
+            'random_state': 0,
+        }
 
 
 class AdditiveUnscentedKalmanFilter(UnscentedMixin):
@@ -1366,3 +1370,14 @@ class AdditiveUnscentedKalmanFilter(UnscentedMixin):
             transition_covariance, observation_covariance,
             initial_state_mean, initial_state_covariance
         )
+
+    def _default_parameters(self):
+        return {
+            'transition_functions': lambda state: state,
+            'observation_functions': lambda state: state,
+            'transition_covariance': np.eye(self.n_dim_state),
+            'observation_covariance': np.eye(self.n_dim_obs),
+            'initial_state_mean': np.zeros(self.n_dim_state),
+            'initial_state_covariance': np.eye(self.n_dim_state),
+            'random_state': 0,
+        }

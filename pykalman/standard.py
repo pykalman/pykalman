@@ -12,7 +12,7 @@ import numpy as np
 from scipy import linalg
 
 from .utils import array1d, array2d, check_random_state, \
-    get_params, log_multivariate_normal_density
+    get_params, log_multivariate_normal_density, preprocess_arguments
 
 # Dimensionality of each Kalman Filter parameter for a single time step
 DIM = {
@@ -1015,6 +1015,24 @@ class KalmanFilter(object):
                      'initial_state_mean', 'initial_state_covariance'],
             n_dim_state=None, n_dim_obs=None):
         """Initialize Kalman Filter"""
+
+        # determine size of state space
+        n_dim_state = _determine_dimensionality(
+            [(transition_matrices, array2d, -2),
+             (transition_offsets, array1d, -1),
+             (transition_covariance, array2d, -2),
+             (initial_state_mean, array1d, -1),
+             (initial_state_covariance, array2d, -2),
+             (observation_matrices, array2d, -1)],
+            n_dim_state
+        )
+        n_dim_obs = _determine_dimensionality(
+            [(observation_matrices, array2d, -2),
+             (observation_offsets, array1d, -1),
+             (observation_covariance, array2d, -2)],
+            n_dim_obs
+        )
+
         self.transition_matrices = transition_matrices
         self.observation_matrices = observation_matrices
         self.transition_covariance = transition_covariance
@@ -1459,69 +1477,53 @@ class KalmanFilter(object):
 
     def _initialize_parameters(self):
         """Retrieve parameters if they exist, else replace with defaults"""
+        n_dim_state, n_dim_obs = self.n_dim_state, self.n_dim_obs
 
-        # determine size of state and observation space
-        n_dim_state = _determine_dimensionality(
-            [(self.transition_matrices, array2d, -2),
-             (self.transition_offsets, array1d, -1),
-             (self.transition_covariance, array2d, -2),
-             (self.initial_state_mean, array1d, -1),
-             (self.initial_state_covariance, array2d, -2),
-             (self.observation_matrices, array2d, -1)],
-            self.n_dim_state
-        )
-        n_dim_obs = _determine_dimensionality(
-            [(self.observation_matrices, array2d, -2),
-             (self.observation_offsets, array1d, -1),
-             (self.observation_covariance, array2d, -2)],
-            self.n_dim_obs
-        )
+        arguments = get_params(self)
+        defaults = {
+            'transition_matrices': np.eye(n_dim_state),
+            'transition_offsets': np.zeros(n_dim_state),
+            'transition_covariance': np.eye(n_dim_state),
+            'observation_matrices': np.eye(n_dim_obs, n_dim_state),
+            'observation_offsets': np.zeros(n_dim_obs),
+            'observation_covariance': np.eye(n_dim_obs),
+            'initial_state_mean': np.zeros(n_dim_state),
+            'initial_state_covariance': np.eye(n_dim_state),
+            'random_state': 0,
+            'em_vars': [
+                'transition_covariance',
+                'observation_covariance',
+                'initial_state_mean',
+                'initial_state_covariance'
+            ],
+        }
+        converters = {
+            'transition_matrices': array2d,
+            'transition_offsets': array1d,
+            'transition_covariance': array2d,
+            'observation_matrices': array2d,
+            'observation_offsets': array1d,
+            'observation_covariance': array2d,
+            'initial_state_mean': array1d,
+            'initial_state_covariance': array2d,
+            'random_state': int,
+            'n_dim_state': int,
+            'n_dim_obs': int,
+            'em_vars': lambda x: x,
+        }
 
-        # initialize parameters
-        transition_matrices = (
-            np.eye(n_dim_state)
-            if self.transition_matrices is None
-            else array2d(self.transition_matrices)
+        parameters = preprocess_arguments([arguments, defaults], converters)
+
+        return (
+            parameters['transition_matrices'],
+            parameters['transition_offsets'],
+            parameters['transition_covariance'],
+            parameters['observation_matrices'],
+            parameters['observation_offsets'],
+            parameters['observation_covariance'],
+            parameters['initial_state_mean'],
+            parameters['initial_state_covariance']
         )
-        transition_offsets = (
-            np.zeros(n_dim_state)
-            if self.transition_offsets is None
-            else array1d(self.transition_offsets)
-        )
-        transition_covariance = (
-            np.eye(n_dim_state)
-            if self.transition_covariance is None
-            else array2d(self.transition_covariance)
-        )
-        observation_matrices = (
-            np.eye(n_dim_obs, n_dim_state)
-            if self.observation_matrices is None
-            else array2d(self.observation_matrices)
-        )
-        observation_offsets = (
-            np.zeros(n_dim_obs)
-            if self.observation_offsets is None
-            else array1d(self.observation_offsets)
-        )
-        observation_covariance = (
-            np.eye(n_dim_obs)
-            if self.observation_covariance is None
-            else array2d(self.observation_covariance)
-        )
-        initial_state_mean = (
-            np.zeros(n_dim_state)
-            if self.initial_state_mean is None
-            else array1d(self.initial_state_mean)
-        )
-        initial_state_covariance = (
-            np.eye(n_dim_state)
-            if self.initial_state_covariance is None
-            else array2d(self.initial_state_covariance)
-        )
-        return (transition_matrices, transition_offsets,
-                transition_covariance, observation_matrices,
-                observation_offsets, observation_covariance,
-                initial_state_mean, initial_state_covariance)
 
     def _parse_observations(self, obs):
         """Safely convert observations to their expected format"""
