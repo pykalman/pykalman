@@ -111,7 +111,7 @@ def unscented_transform(points, f=None, points_noise=None, sigma_noise=None):
     available, treat it as additional variance due to additive noise.
 
     Parameters
-    ==========
+    ----------
     points : [n_points, n_dim_state] SigmaPoints
         points to pass into f's first argument and associated weights if f is
         defined. If f is unavailable, then f is assumed to be the identity
@@ -124,7 +124,7 @@ def unscented_transform(points, f=None, points_noise=None, sigma_noise=None):
         covariance matrix for additive noise, if any
 
     Returns
-    =======
+    -------
     points_pred : [n_points, n_dim_state] SigmaPoints
         points transformed by f with same weights
     moments_pred : [n_dim_state] Moments
@@ -173,7 +173,8 @@ def unscented_correct(cross_sigma, moments_pred, obs_moments_pred, z):
     Returns
     -------
     moments_filt : [n_dim_state] Moments
-        mean and covariance of state at time t given observations from time steps [0, t]
+        mean and covariance of state at time t given observations from time
+        steps [0, t]
     '''
     mu_pred, sigma_pred = moments_pred
     obs_mu_pred, obs_sigma_pred = obs_moments_pred
@@ -717,7 +718,7 @@ class UnscentedMixin(object):
         defaults = self._default_parameters()
         converters = self._converters()
 
-        processed =  preprocess_arguments([arguments, defaults], converters)
+        processed = preprocess_arguments([arguments, defaults], converters)
         return (
             processed['transition_functions'],
             processed['observation_functions'],
@@ -1288,7 +1289,7 @@ class AdditiveUnscentedKalmanFilter(UnscentedMixin):
         else:
             observation = np.ma.asarray(observation)
 
-        # make sigma poins
+        # make sigma points
         moments_state = Moments(filtered_state_mean, filtered_state_covariance)
         points_state = moments2points(moments_state)
 
@@ -1347,29 +1348,6 @@ class AdditiveUnscentedKalmanFilter(UnscentedMixin):
         )
 
         return (smoothed_state_means, smoothed_state_covariances)
-
-    def _initialize_parameters(self):
-        """Retrieve parameters if they exist, else replace with defaults"""
-        (_, _,
-         transition_covariance, observation_covariance,
-         initial_state_mean, initial_state_covariance) = (
-            super(AdditiveUnscentedKalmanFilter, self)._initialize_parameters()
-        )
-        transition_functions = (
-            array1d(lambda state: state)
-            if self.transition_functions is None
-            else array1d(self.transition_functions)
-        )
-        observation_functions = (
-            array1d(lambda state: state)
-            if self.observation_functions is None
-            else array1d(self.observation_functions)
-        )
-        return (
-            transition_functions, observation_functions,
-            transition_covariance, observation_covariance,
-            initial_state_mean, initial_state_covariance
-        )
 
     def _default_parameters(self):
         return {

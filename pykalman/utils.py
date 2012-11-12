@@ -119,40 +119,39 @@ def get_params(obj):
 
 
 def preprocess_arguments(argsets, converters):
-  """convert and collect arguments in order of priority
+    """convert and collect arguments in order of priority
 
-  Parameters
-  ----------
-  argsets : [{argname: argval}]
-      a list of argument sets, each with lower levels of priority
-  converters : {argname: function}
-      conversion functions for each argument
+    Parameters
+    ----------
+    argsets : [{argname: argval}]
+        a list of argument sets, each with lower levels of priority
+    converters : {argname: function}
+        conversion functions for each argument
 
-  Returns
-  -------
-  result : {argname: argval}
-      processed arguments
-  """
-  result = {}
-  for argset in argsets:
-    for (argname, argval) in argset.iteritems():
-      # check that this argument is necessary
-      if not argname in converters:
-        raise ValueError("Unrecognized argument: %s" % (argname,))
+    Returns
+    -------
+    result : {argname: argval}
+        processed arguments
+    """
+    result = {}
+    for argset in argsets:
+        for (argname, argval) in argset.iteritems():
+            # check that this argument is necessary
+            if not argname in converters:
+                raise ValueError("Unrecognized argument: %s" % (argname,))
 
-      # potentially use this argument
-      if argname not in result and argval is not None:
-        # convert to right type
-        argval = converters[argname](argval)
+            # potentially use this argument
+            if argname not in result and argval is not None:
+                # convert to right type
+                argval = converters[argname](argval)
 
-        # save
-        result[argname] = argval
+                # save
+                result[argname] = argval
 
+    # check that all arguments are covered
+    if not len(converters.keys()) == len(result.keys()):
+        missing = set(converters.keys()) - set(result.keys())
+        s = "The following arguments are missing: %s" % (list(missing),)
+        raise ValueError(s)
 
-  # check that all arguments are covered
-  if not len(converters.keys()) == len(result.keys()):
-    missing = set(converters.keys()) - set(result.keys())
-    s = "The following arguments are missing: %s" % (list(missing),)
-    raise ValueError(s)
-
-  return result
+    return result

@@ -23,72 +23,88 @@ from scipy import linalg
 
 from ..utils import array1d, array2d, check_random_state
 
-from ..standard import _last_dims
-from ..unscented import AdditiveUnscentedKalmanFilter as AUKF
+from ..standard import _last_dims, _arg_or_default
+from ..unscented import AdditiveUnscentedKalmanFilter as AUKF, \
+    SigmaPoints, Moments
+
+
+def _reconstruct_covariances(covariance2s):
+    '''Reconstruct covariance matrices given their cholesky factors'''
+    if len(covariance2s.shape) == 2:
+        covariance2s = covariance2s[np.newaxis, :, :]
+
+    T = covariance2s.shape[0]
+    covariances = np.zeros(covariance2s.shape)
+
+    for t in range(T):
+        M = covariance2s[t]
+        covariances[t] = M.T.dot(M)
+
+    return covariances
 
 
 def cholupdate(A2, X, weight):
-  '''Calculate chol(A + w x x')
+    '''Calculate chol(A + w x x')
 
-  Parameters
-  ----------
-  A2 : [n_dim, n_dim] array
-      A = A2.T.dot(A2) for A positive definite, symmetric
-  X : [n_dim] or [n_vec, n_dim] array
-      vector(s) to be used for x.  If X has 2 dimensions, then each row will be
-      added in turn.
-  weight : float
-      weight to be multiplied to each x x'. If negative, will use
-      sign(weight) * sqrt(abs(weight)) instead of sqrt(weight).
+    Parameters
+    ----------
+    A2 : [n_dim, n_dim] array
+        A = A2.T.dot(A2) for A positive definite, symmetric
+    X : [n_dim] or [n_vec, n_dim] array
+        vector(s) to be used for x.  If X has 2 dimensions, then each row will be
+        added in turn.
+    weight : float
+        weight to be multiplied to each x x'. If negative, will use
+        sign(weight) * sqrt(abs(weight)) instead of sqrt(weight).
 
-  Returns
-  -------
-  A2 : [n_dim, n_dim array]
-      cholesky decomposition of updated matrix
+    Returns
+    -------
+    A2 : [n_dim, n_dim array]
+        cholesky decomposition of updated matrix
 
-  Notes
-  -----
+    Notes
+    -----
 
-  Code based on the following MATLAB snippet taken from Wikipedia on
-  August 14, 2012::
+    Code based on the following MATLAB snippet taken from Wikipedia on
+    August 14, 2012::
 
-      function [L] = cholupdate(L,x)
-          p = length(x);
-          x = x';
-          for k=1:p
-              r = sqrt(L(k,k)^2 + x(k)^2);
-              c = r / L(k, k);
-              s = x(k) / L(k, k);
-              L(k, k) = r;
-              L(k,k+1:p) = (L(k,k+1:p) + s*x(k+1:p)) / c;
-              x(k+1:p) = c*x(k+1:p) - s*L(k, k+1:p);
-          end
-      end
-  '''
-  # make copies
-  X = X.copy()
-  A2 = A2.copy()
+        function [L] = cholupdate(L,x)
+            p = length(x);
+            x = x';
+            for k=1:p
+                r = sqrt(L(k,k)^2 + x(k)^2);
+                c = r / L(k, k);
+                s = x(k) / L(k, k);
+                L(k, k) = r;
+                L(k,k+1:p) = (L(k,k+1:p) + s*x(k+1:p)) / c;
+                x(k+1:p) = c*x(k+1:p) - s*L(k, k+1:p);
+            end
+        end
+    '''
+    # make copies
+    X = X.copy()
+    A2 = A2.copy()
 
-  # standardize input shape
-  if len(X.shape) == 1:
-      X = X[np.newaxis,:]
-  n_vec, n_dim = X.shape
+    # standardize input shape
+    if len(X.shape) == 1:
+        X = X[np.newaxis, :]
+    n_vec, n_dim = X.shape
 
-  # take sign of weight into account
-  sign, weight = np.sign(weight), np.sqrt(np.abs(weight))
-  X = weight * X
+    # take sign of weight into account
+    sign, weight = np.sign(weight), np.sqrt(np.abs(weight))
+    X = weight * X
 
-  for i in range(n_vec):
-      x = X[i, :]
-      for k in range(n_dim):
-          r_squared = A2[k, k]**2 + sign * x[k]**2
-          r = 0.0 if r_squared < 0 else np.sqrt(r_squared)
-          c = r / A2[k, k]
-          s = x[k] / A2[k, k]
-          A2[k, k] = r
-          A2[k, k+1:] = (A2[k, k+1:] + sign * s * x[k+1:]) / c
-          x[k+1:] = c * x[k+1:] - s * A2[k, k+1:]
-  return A2
+    for i in range(n_vec):
+        x = X[i, :]
+        for k in range(n_dim):
+            r_squared = A2[k, k] ** 2 + sign * x[k] ** 2
+            r = 0.0 if r_squared < 0 else np.sqrt(r_squared)
+            c = r / A2[k, k]
+            s = x[k] / A2[k, k]
+            A2[k, k] = r
+            A2[k, k + 1:] = (A2[k, k + 1:] + sign * s * x[k + 1:]) / c
+            x[k + 1:] = c * x[k + 1:] - s * A2[k, k + 1:]
+    return A2
 
 
 def qr(A):
@@ -100,27 +116,22 @@ def qr(A):
     return R[:L, :L]
 
 
-def _unscented_moments(points, weights_mu, weights_sigma, sigma2_noise=None):
-    '''Calculate the weighted mean and covariance of `points`
+def points2moments(points, sigma2_noise=None):
+    '''Calculate estimated mean and covariance of sigma points
 
     Parameters
     ----------
-    points : [2 * n_dim_state + 1, n_dim_state] array
-        array where each row is a sigma point
-    weights_mu : [2 * n_dim_state + 1] array
-        weights used to calculate the mean
-    weights_sigma : [2 * n_dim_state + 1] array
-        weights used to calcualte the covariance
-    sigma2_noise : [n_dim_state, n_dim_state] array
-        square root of additive noise covariance matrix
+    points : [2 * n_dim_state + 1, n_dim_state] SigmaPoints
+        SigmaPoints object containing points and weights
+    sigma_noise : [n_dim_state, n_dim_state] array
+        additive noise covariance matrix, if any
 
     Returns
     -------
-    mu : [n_dim_state] array
-        approximate mean
-    sigma2 : [n_dim_state, n_dim_state] array
-        R s.t. R' R = approximate covariance
+    moments : Moments object of size [n_dim_state]
+        Mean and covariance estimated using points
     '''
+    (points, weights_mu, weights_sigma) = points
     mu = points.T.dot(weights_mu)
 
     # make points to perform QR factorization on. each column is one data point
@@ -133,18 +144,16 @@ def _unscented_moments(points, weights_mu, weights_sigma, sigma2_noise=None):
         qr_points.append(sigma2_noise)
     sigma2 = qr(np.hstack(qr_points).T)
     #sigma2 = cholupdate(sigma2, points[0] - mu, weights_sigma[0])
-    return (mu.ravel(), sigma2)
+    return Moments(mu.ravel(), sigma2)
 
 
-def _sigma_points(mu, sigma2, alpha=1e-3, beta=2.0, kappa=0.0):
+def moments2points(moments, alpha=1e-3, beta=2.0, kappa=0.0):
     '''Calculate "sigma points" used in Unscented Kalman Filter
 
     Parameters
     ----------
-    mu : [n_dim] array
-        Mean of multivariate normal distribution
-    sigma2 : [n_dim, n_dim] array
-        R s.t. R' R = Covariance of multivariate normal
+    moments : [n_dim] Moments object
+        mean and covariance of a multivariate normal
     alpha : float
         Spread of the sigma points. Typically 1e-3.
     beta : float
@@ -155,13 +164,10 @@ def _sigma_points(mu, sigma2, alpha=1e-3, beta=2.0, kappa=0.0):
 
     Returns
     -------
-    points : [2*n_dim+1, n_dim] array
-        each row is a sigma point of the UKF
-    weights_mean : [2*n_dim+1] array
-        weights for calculating the empirical mean
-    weights_cov : [n*n_dim+1] array
-        weights for calculating the empirical covariance
+    points : [2*n_dim+1, n_dim] SigmaPoints
+        sigma points and associated weights
     '''
+    (mu, sigma2) = moments
     n_dim = len(mu)
     mu = array2d(mu, dtype=float)
 
@@ -188,23 +194,18 @@ def _sigma_points(mu, sigma2, alpha=1e-3, beta=2.0, kappa=0.0):
     weights_cov = np.copy(weights_mean)
     weights_cov[0] = lamda / c + (1 - alpha * alpha + beta)
 
-    return (points.T, weights_mean, weights_cov)
+    return SigmaPoints(points.T, weights_mean, weights_cov)
 
 
-def _unscented_transform(f, points, weights_mean, weights_cov,
-                         points_noise=None, sigma2_noise=None):
+def _unscented_transform(points, f=None, points_noise=None, sigma2_noise=None):
     '''Apply the Unscented Transform.
 
     Parameters
     ==========
-    f : [n_dim_1, n_dim_3] -> [n_dim_2] function
-        function to apply pass all points through
     points : [n_points, n_dim_1] array
         points representing state to pass through `f`
-    weights_mean : [n_points] array
-        weights used to calculate the empirical mean
-    weights_cov : [n_points] array
-        weights used to calculate empirical covariance
+    f : [n_dim_1, n_dim_3] -> [n_dim_2] function
+        function to apply pass all points through
     points_noise : [n_points, n_dim_3] array
         points representing noise to pass through `f`, if any.
     sigma2_noise : [n_dim_2, n_dim_2] array
@@ -219,27 +220,31 @@ def _unscented_transform(f, points, weights_mean, weights_cov,
     sigma2_pred : [n_dim_2, n_dim_2] array
         R s.t. R' R = empirical covariance
     '''
-    n_points = points.shape[0]
+    n_points, n_dim_state = points.points.shape
+    (points, weights_mean, weights_covariance) = points
 
     # propagate points through f.  Each column is a sample point
-    if points_noise is None:
-        points_pred = [f(points[i]) for i in range(n_points)]
+    if f is not None:
+        if points_noise is None:
+            points_pred = [f(points[i]) for i in range(n_points)]
+        else:
+            points_pred = [f(points[i], points_noise[i]) for i in range(n_points)]
     else:
-        points_pred = [f(points[i], points_noise[i]) for i in range(n_points)]
+        points_pred = points
 
     # make each row a predicted point
     points_pred = np.vstack(points_pred)
+    points_pred = SigmaPoints(points_pred, weights_mean, weights_covariance)
 
     # calculate approximate mean, covariance
-    (mu_pred, sigma2_pred) = _unscented_moments(
-        points_pred, weights_mean, weights_cov, sigma2_noise
+    moments_pred = points2moments(
+        points_pred, sigma2_noise=sigma2_noise
     )
 
-    return (points_pred, mu_pred, sigma2_pred)
+    return (points_pred, moments_pred)
 
 
-def _unscented_correct(cross_sigma, mu_pred, sigma2_pred, obs_mu_pred,
-                       obs_sigma2_pred, z):
+def _unscented_correct(cross_sigma, moments_pred, obs_moments_pred, z):
     '''Correct predicted state estimates with an observation
 
     Parameters
@@ -247,27 +252,24 @@ def _unscented_correct(cross_sigma, mu_pred, sigma2_pred, obs_mu_pred,
     cross_sigma : [n_dim_state, n_dim_obs] array
         cross-covariance between the state at time t given all observations
         from timesteps [0, t-1] and the observation at time t
-    mu_pred : [n_dim_state] array
-        mean of state at time t given observations from timesteps [0, t-1]
-    sigma2_pred : [n_dim_state, n_dim_state] array
-        square root of covariance of state at time t given observations from
+    moments_pred : [n_dim_state] Moments
+        mean and covariance of state at time t given observations from
         timesteps [0, t-1]
-    obs_mu_pred : [n_dim_obs] array
-        mean of observation at time t given observations from times [0, t-1]
-    obs_sigma2_pred : [n_dim_obs] array
-        square root of covariance of observation at time t given observations
-        from times [0, t-1]
+    obs_moments_pred : [n_dim_obs] Moments
+        mean and covariance of observation at time t given observations from
+        times [0, t-1]
     z : [n_dim_obs] array
         observation at time t
 
     Returns
     -------
-    mu_filt : [n_dim_state] array
-        mean of state at time t given observations from time steps [0, t]
-    sigma2_filt : [n_dim_state, n_dim_state] array
-        square root of covariance of state at time t given observations from
-        time steps [0, t]
+    moments_filt : [n_dim_state] Moments
+        mean and covariance of state at time t given observations from time
+        steps [0, t]
     '''
+    mu_pred, sigma2_pred = moments_pred
+    obs_mu_pred, obs_sigma2_pred = obs_moments_pred
+
     n_dim_state = len(mu_pred)
     n_dim_obs = len(obs_mu_pred)
 
@@ -296,7 +298,102 @@ def _unscented_correct(cross_sigma, mu_pred, sigma2_pred, obs_mu_pred,
         # no corrections to be made
         mu_filt = mu_pred
         sigma2_filt = sigma2_pred
-    return (mu_filt, sigma2_filt)
+    return Moments(mu_filt, sigma2_filt)
+
+
+def unscented_filter_predict(transition_function, points_state,
+                             points_transition=None,
+                             sigma2_transition=None):
+    """Predict next state distribution
+
+    Using the sigma points representing the state at time t given observations
+    from time steps 0...t, calculate the predicted mean, covariance, and sigma
+    points for the state at time t+1.
+
+    Parameters
+    ----------
+    transition_function : function
+        function describing how the state changes between times t and t+1
+    points_state : [2*n_dim_state+1, n_dim_state] SigmaPoints
+        sigma points corresponding to the state at time step t given
+        observations from time steps 0...t
+    points_transition : [2*n_dim_state+1, n_dim_state] SigmaPoints
+        sigma points corresponding to the noise in transitioning from time step
+        t to t+1, if available. If not, assumes that noise is additive
+    sigma_transition : [n_dim_state, n_dim_state] array
+        covariance corresponding to additive noise in transitioning from time
+        step t to t+1, if available. If not, assumes noise is not additive.
+
+    Returns
+    -------
+    points_pred : [2*n_dim_state+1, n_dim_state] SigmaPoints
+        sigma points corresponding to state at time step t+1 given observations
+        from time steps 0...t. These points have not been "standardized" by the
+        unscented transform yet.
+    moments_pred : [n_dim_state] Moments
+        mean and covariance corresponding to time step t+1 given observations
+        from time steps 0...t
+    """
+    assert points_transition is not None or sigma2_transition is not None, \
+        "Your system is noiseless? really?"
+    (points_pred, moments_pred) = (
+        _unscented_transform(
+            points_state, transition_function,
+            points_noise=points_transition, sigma2_noise=sigma2_transition
+        )
+    )
+    return (points_pred, moments_pred)
+
+
+def unscented_filter_correct(observation_function, moments_pred,
+                             points_pred, observation,
+                             points_observation=None,
+                             sigma2_observation=None):
+    """Integrate new observation to correct state estimates
+
+    Parameters
+    ----------
+    observation_function : function
+        function characterizing how the observation at time t+1 is generated
+    moments_pred : [n_dim_state] Moments
+        mean and covariance of state at time t+1 given observations from time
+        steps 0...t
+    points_pred : [2*n_dim_state+1, n_dim_state] SigmaPoints
+        sigma points corresponding to moments_pred
+    observation : [n_dim_state] array
+        observation at time t+1. If masked, treated as missing.
+    points_observation : [2*n_dim_state, n_dim_obs] SigmaPoints
+        sigma points corresponding to predicted observation at time t+1 given
+        observations from times 0...t, if available. If not, noise is assumed
+        to be additive.
+    sigma_observation : [n_dim_obs, n_dim_obs] array
+        covariance matrix corresponding to additive noise in observation at
+        time t+1, if available. If missing, noise is assumed to be non-linear.
+
+    Returns
+    -------
+    moments_filt : [n_dim_state] Moments
+        mean and covariance of state at time t+1 given observations from time
+        steps 0...t+1
+    """
+    # Calculate E[z_t | z_{0:t-1}], Var(z_t | z_{0:t-1})
+    (obs_points_pred, obs_moments_pred) = (
+        _unscented_transform(
+            points_pred, observation_function,
+            points_noise=points_observation, sigma2_noise=sigma2_observation
+        )
+    )
+
+    # Calculate Cov(x_t, z_t | z_{0:t-1})
+    sigma_pair = (
+        ((points_pred.points - moments_pred.mean).T)
+        .dot(np.diag(points_pred.weights_mean))
+        .dot(obs_points_pred.points - obs_moments_pred.mean)
+    )
+
+    # Calculate E[x_t | z_{0:t}], Var(x_t | z_{0:t})
+    moments_filt = _unscented_correct(sigma_pair, moments_pred, obs_moments_pred, observation)
+    return moments_filt
 
 
 def _additive_unscented_filter(mu_0, sigma_0, f, g, Q, R, Z):
@@ -346,45 +443,26 @@ def _additive_unscented_filter(mu_0, sigma_0, f, g, Q, R, Z):
         else:
             mu, sigma2 = mu_filt[t - 1], sigma2_filt[t - 1]
 
-        (points_state, weights_mu, weights_sigma) = _sigma_points(mu, sigma2)
+        points_state = moments2points(Moments(mu, sigma2))
 
         # Calculate E[x_t | z_{0:t-1}], Var(x_t | z_{0:t-1})
         if t == 0:
             points_pred = points_state
-            (mu_pred, sigma2_pred) = (
-                _unscented_moments(points_pred, weights_mu, weights_sigma)
-            )
+            moments_pred = points2moments(points_pred)
         else:
-            f_t1 = _last_dims(f, t - 1, ndims=1)[0]
-
-            (_, mu_pred, sigma2_pred) = (
-                _unscented_transform(f_t1, points_state,
-                                     weights_mu, weights_sigma,
-                                     sigma2_noise=Q2)
+            transition_function = _last_dims(f, t - 1, ndims=1)[0]
+            (_, moments_pred) = (
+                unscented_filter_predict(
+                    transition_function, points_state, sigma2_transition=Q2
+                )
             )
-            points_pred = _sigma_points(mu_pred, sigma2_pred)[0]
+            points_pred = moments2points(moments_pred)
 
         # Calculate E[z_t | z_{0:t-1}], Var(z_t | z_{0:t-1})
-        g_t = _last_dims(g, t, ndims=1)[0]
-        (obs_points_pred, obs_mu_pred, obs_sigma2_pred) = (
-            _unscented_transform(g_t, points_pred,
-                                 weights_mu, weights_sigma,
-                                 sigma2_noise=R2)
-        )
-
-        # Calculate Cov(x_t, z_t | z_{0:t-1})
-        sigma_pair = (
-            (points_pred - mu_pred).T
-            .dot(np.diag(weights_sigma))
-            .dot(obs_points_pred - obs_mu_pred)
-        )
-
-        # Calculate E[x_t | z_{0:t}], Var(x_t | z_{0:t})
-        (mu_filt[t], sigma2_filt[t]) = (
-            _unscented_correct(sigma_pair,
-                               mu_pred, sigma2_pred,
-                               obs_mu_pred, obs_sigma2_pred,
-                               Z[t])
+        observation_function = _last_dims(g, t, ndims=1)[0]
+        mu_filt[t], sigma2_filt[t] = unscented_filter_correct(
+            observation_function, moments_pred, points_pred,
+            Z[t], sigma2_observation=R2
         )
 
     return (mu_filt, sigma2_filt)
@@ -430,22 +508,20 @@ def _additive_unscented_smoother(mu_filt, sigma2_filt, f, Q):
         mu = mu_filt[t]
         sigma2 = sigma2_filt[t]
 
-        (points_state, weights_mu, weights_sigma) = (
-            _sigma_points(mu, sigma2)
-        )
+        moments_state = Moments(mu, sigma2)
+        points_state = moments2points(moments_state)
 
         # compute E[x_{t+1} | z_{0:t}], Var(x_{t+1} | z_{0:t})
-        f_t = _last_dims(f, t, ndims=1)[0]
-        (points_pred, mu_pred, sigma2_pred) = (
-            _unscented_transform(f_t, points_state, weights_mu,
-                                 weights_sigma, sigma2_noise=Q2)
+        transition_function = _last_dims(f, t, ndims=1)[0]
+        (points_pred, moments_pred) = (
+            _unscented_transform(points_state, transition_function, sigma2_noise=Q2)
         )
 
         # Calculate Cov(x_{t+1}, x_t | z_{0:t-1})
         sigma_pair = (
-            (points_pred - mu_pred).T
-            .dot(np.diag(weights_sigma))
-            .dot(points_state - mu).T
+            (points_pred.points - moments_pred.mean).T
+            .dot(np.diag(points_pred.weights_covariance))
+            .dot(points_state.points - moments_state.mean).T
         )
 
         # compute smoothed mean, covariance
@@ -457,16 +533,16 @@ def _additive_unscented_smoother(mu_filt, sigma2_filt, f, Q):
         #     sigma_pair.dot(linalg.pinv(sigma2_pred.T.dot(sigma2_pred)))
         # )
         #############################################
-        smoother_gain = linalg.lstsq(sigma2_pred.T, sigma_pair.T)[0]
-        smoother_gain = linalg.lstsq(sigma2_pred, smoother_gain)[0]
+        smoother_gain = linalg.lstsq(moments_pred.covariance.T, sigma_pair.T)[0]
+        smoother_gain = linalg.lstsq(moments_pred.covariance, smoother_gain)[0]
         smoother_gain = smoother_gain.T
 
         mu_smooth[t] = (
             mu_filt[t]
             + smoother_gain
-              .dot(mu_smooth[t + 1] - mu_pred)
+              .dot(mu_smooth[t + 1] - moments_pred.mean)
         )
-        U = cholupdate(sigma2_pred, sigma2_smooth[t + 1], -1.0)
+        U = cholupdate(moments_pred.covariance, sigma2_smooth[t + 1], -1.0)
         sigma2_smooth[t] = (
             cholupdate(sigma2_filt[t], smoother_gain.dot(U.T).T, -1.0)
         )
@@ -562,6 +638,121 @@ class AdditiveUnscentedKalmanFilter(AUKF):
             filtered_state_covariances[t] = sigma2_filt[t].T.dot(sigma2_filt[t])
 
         return (filtered_state_means, filtered_state_covariances)
+
+    def filter_update(self,
+                      filtered_state_mean, filtered_state_covariance,
+                      observation=None,
+                      transition_function=None, transition_covariance=None,
+                      observation_function=None, observation_covariance=None):
+        r"""Update a Kalman Filter state estimate
+
+        Perform a one-step update to estimate the state at time :math:`t+1`
+        give an observation at time :math:`t+1` and the previous estimate for
+        time :math:`t` given observations from times :math:`[0...t]`.  This
+        method is useful if one wants to track an object with streaming
+        observations.
+
+        Parameters
+        ----------
+        filtered_state_mean : [n_dim_state] array
+            mean estimate for state at time t given observations from times
+            [1...t]
+        filtered_state_covariance : [n_dim_state, n_dim_state] array
+            covariance of estimate for state at time t given observations from
+            times [1...t]
+        observation : [n_dim_obs] array or None
+            observation from time t+1.  If `observation` is a masked array and
+            any of `observation`'s components are masked or if `observation` is
+            None, then `observation` will be treated as a missing observation.
+        transition_function : optional, function
+            state transition function from time t to t+1.  If unspecified,
+            `self.transition_functions` will be used.
+        transition_covariance : optional, [n_dim_state, n_dim_state] array
+            state transition covariance from time t to t+1.  If unspecified,
+            `self.transition_covariance` will be used.
+        observation_function : optional, function
+            observation function at time t+1.  If unspecified,
+            `self.observation_functions` will be used.
+        observation_covariance : optional, [n_dim_obs, n_dim_obs] array
+            observation covariance at time t+1.  If unspecified,
+            `self.observation_covariance` will be used.
+
+        Returns
+        -------
+        next_filtered_state_mean : [n_dim_state] array
+            mean estimate for state at time t+1 given observations from times
+            [1...t+1]
+        next_filtered_state_covariance : [n_dim_state, n_dim_state] array
+            covariance of estimate for state at time t+1 given observations
+            from times [1...t+1]
+        """
+        # initialize parameters
+        (transition_functions, observation_functions,
+         transition_cov, observation_cov,
+         _, _) = (
+            self._initialize_parameters()
+        )
+
+        def default_function(f, arr):
+            if f is None:
+                assert len(arr) == 1
+                f = arr[0]
+            return f
+
+        transition_function = default_function(
+            transition_function, transition_functions
+        )
+        observation_function = default_function(
+            observation_function, observation_functions
+        )
+        transition_covariance = _arg_or_default(
+            transition_covariance, transition_cov,
+            2, "transition_covariance"
+        )
+        observation_covariance = _arg_or_default(
+            observation_covariance, observation_cov,
+            2, "observation_covariance"
+        )
+
+        # Make a masked observation if necessary
+        if observation is None:
+            n_dim_obs = observation_covariance.shape[0]
+            observation = np.ma.array(np.zeros(n_dim_obs))
+            observation.mask = True
+        else:
+            observation = np.ma.asarray(observation)
+
+        # preprocess covariance matrices
+        filtered_state_covariance2 = linalg.cholesky(filtered_state_covariance)
+        transition_covariance2 = linalg.cholesky(transition_covariance)
+        observation_covariance2 = linalg.cholesky(observation_covariance)
+
+        # make sigma points
+        moments_state = Moments(filtered_state_mean, filtered_state_covariance2)
+        points_state = moments2points(moments_state)
+
+        # predict
+        (_, moments_pred) = (
+            unscented_filter_predict(
+                transition_function, points_state,
+                sigma2_transition=transition_covariance2
+            )
+        )
+        points_pred = moments2points(moments_pred)
+
+        # correct
+        (next_filtered_state_mean, next_filtered_state_covariance2) = (
+            unscented_filter_correct(
+                observation_function, moments_pred, points_pred,
+                observation, sigma2_observation=observation_covariance2
+            )
+        )
+
+        next_filtered_state_covariance = (
+            _reconstruct_covariances(next_filtered_state_covariance2)
+        )
+
+        return (next_filtered_state_mean, next_filtered_state_covariance)
 
     def smooth(self, Z):
         '''Run Unscented Kalman Smoother
