@@ -61,7 +61,7 @@ def log_multivariate_normal_density(X, means, covars, min_covar=1.e-7):
     n_samples, n_dim = X.shape
     nmix = len(means)
     log_prob = np.empty((n_samples, nmix))
-    for c, (mu, cv) in enumerate(itertools.izip(means, covars)):
+    for c, (mu, cv) in enumerate(zip(means, covars)):
         try:
             cv_chol = linalg.cholesky(cv, lower=True)
         except linalg.LinAlgError:
@@ -91,8 +91,8 @@ def check_random_state(seed):
         return np.random.RandomState(seed)
     if isinstance(seed, np.random.RandomState):
         return seed
-    raise ValueError('%r cannot be used to seed a numpy.random.RandomState'
-                     ' instance' % seed)
+    raise ValueError('{0} cannot be used to seed a numpy.random.RandomState'
+                     + ' instance').format(seed)
 
 
 class Bunch(dict):
@@ -135,10 +135,10 @@ def preprocess_arguments(argsets, converters):
     """
     result = {}
     for argset in argsets:
-        for (argname, argval) in argset.iteritems():
+        for (argname, argval) in argset.items():
             # check that this argument is necessary
             if not argname in converters:
-                raise ValueError("Unrecognized argument: %s" % (argname,))
+                raise ValueError("Unrecognized argument: {0}".format(argname))
 
             # potentially use this argument
             if argname not in result and argval is not None:
@@ -151,7 +151,7 @@ def preprocess_arguments(argsets, converters):
     # check that all arguments are covered
     if not len(converters.keys()) == len(result.keys()):
         missing = set(converters.keys()) - set(result.keys())
-        s = "The following arguments are missing: %s" % (list(missing),)
+        s = "The following arguments are missing: {0}".format(list(missing))
         raise ValueError(s)
 
     return result

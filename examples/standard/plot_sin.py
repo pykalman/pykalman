@@ -34,7 +34,7 @@ kf = KalmanFilter(transition_matrices=np.array([[1, 1], [0, 1]]),
 # You can use the Kalman Filter immediately without fitting, but its estimates
 # may not be as good as if you fit first.
 states_pred = kf.em(observations).smooth(observations)[0]
-print 'fitted model: %s' % (kf,)
+print('fitted model: {0}'.format(kf))
 
 # Plot lines for the observations without noise, the estimated position of the
 # target before fitting, and the estimated position after fitting.

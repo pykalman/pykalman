@@ -9,5 +9,11 @@ spaces.
 
 from .standard import KalmanFilter
 from .unscented import AdditiveUnscentedKalmanFilter, UnscentedKalmanFilter
-import datasets
-import sqrt
+
+__all__ = [
+    "KalmanFilter",
+    "AdditiveUnscentedKalmanFilter",
+    "UnscentedKalmanFilter",
+    "datasets",
+    "sqrt"
+]

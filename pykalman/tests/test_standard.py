@@ -1,6 +1,5 @@
 import pickle
 from io import BytesIO
-from StringIO import StringIO
 from unittest import TestCase
 
 import numpy as np
@@ -184,17 +183,12 @@ class KalmanFilterTests(object):
         loglikelihood = kf.loglikelihood(X)
 
         # pickle Kalman Filter
-        store = StringIO()
+        store = BytesIO()
         pickle.dump(kf, store)
-        clf = pickle.load(StringIO(store.getvalue()))
+        clf = pickle.load(BytesIO(store.getvalue()))
 
         # check that parameters came out already
         np.testing.assert_almost_equal(loglikelihood, kf.loglikelihood(X))
-
-        # store it as BytesIO as well
-        store = BytesIO()
-        pickle.dump(kf, store)
-        kf = pickle.load(BytesIO(store.getvalue()))
 
 
 class KalmanFilterTestSuite(TestCase, KalmanFilterTests):

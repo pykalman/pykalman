@@ -1,7 +1,8 @@
 *.pyc
 .DS_Store
+.ropeproject
 
 build/
 dist/
 doc/build/
-kalman.egg-info/
+pykalman.egg-info/

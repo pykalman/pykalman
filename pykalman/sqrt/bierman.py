@@ -774,7 +774,7 @@ class BiermanKalmanFilter(KalmanFilter):
                 'initial_state_covariance': self.initial_state_covariance
             }
             em_vars = set(em_vars)
-            for k in given.keys():
+            for k in list(given.keys()):
                 if k in em_vars:
                     given.pop(k)
 
@@ -782,8 +782,9 @@ class BiermanKalmanFilter(KalmanFilter):
         for (k, v) in get_params(self).items():
             if k in DIM and (not k in given) and len(v.shape) != DIM[k]:
                 warn_str = (
-                    '%s has %s dimensions now; after fitting, '
-                    + 'it will have dimension %d') % (k, len(v.shape), DIM[k])
+                    '{0} has {1} dimensions now; after fitting,'+
+                    ' it will have dimension {2}'
+                ).format(k, len(v.shape), DIM[k])
                 warnings.warn(warn_str)
 
         # Actual EM iterations

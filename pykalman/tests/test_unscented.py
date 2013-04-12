@@ -24,7 +24,7 @@ def build_unscented_filter(cls):
         f = lambda x: A.dot(x)
         g = lambda x: C.dot(x)
     else:
-        raise ValueError("How do I make transition functions for %s?" % (cls,))
+        raise ValueError("How do I make transition functions for {0}?".format(cls,))
 
     x = np.array([1, 1])
     P = np.array([[1, 0.1], [0.1, 1]])

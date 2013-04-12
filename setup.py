@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name = 'pykalman',
-    version = '0.9.3',
+    version = '0.9.4',
     author = 'Daniel Duckworth',
     author_email = 'pykalman@gmail.com',
     description = ('An implementation of the Kalman Filter, Kalman ' +
@@ -17,6 +17,7 @@ setup(
       'License :: OSI Approved :: BSD License',
       'Operating System :: OS Independent',
       'Programming Language :: Python',
+      'Programming Language :: Python :: 3',
       'Topic :: Scientific/Engineering :: Artificial Intelligence'
     ],
     include_package_data = True,
