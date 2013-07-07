@@ -1507,7 +1507,7 @@ class KalmanFilter(object):
             'observation_covariance': array2d,
             'initial_state_mean': array1d,
             'initial_state_covariance': array2d,
-            'random_state': int,
+            'random_state': check_random_state,
             'n_dim_state': int,
             'n_dim_obs': int,
             'em_vars': lambda x: x,

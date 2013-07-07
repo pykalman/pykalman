@@ -12,7 +12,7 @@ import numpy as np
 from numpy import ma
 from scipy import linalg
 
-from .utils import array1d, array2d, check_random_state, get_params, preprocess_arguments
+from .utils import array1d, array2d, check_random_state, get_params, preprocess_arguments, check_random_state
 
 from .standard import _last_dims, _determine_dimensionality, _arg_or_default
 
@@ -53,7 +53,7 @@ def points2moments(points, sigma_noise=None):
     return Moments(mu.ravel(), sigma)
 
 
-def moments2points(moments, alpha=1e-3, beta=2.0, kappa=0.0):
+def moments2points(moments, alpha=None, beta=None, kappa=None):
     '''Calculate "sigma points" used in Unscented Kalman Filter
 
     Parameters
@@ -76,6 +76,13 @@ def moments2points(moments, alpha=1e-3, beta=2.0, kappa=0.0):
     (mu, sigma) = moments
     n_dim = len(mu)
     mu = array2d(mu, dtype=float)
+
+    if alpha is None:
+      alpha = 1.0
+    if beta is None:
+      beta = 0.0
+    if kappa is None:
+      kappa = 3.0 - n_dim
 
     # compute sqrt(sigma)
     sigma2 = linalg.cholesky(sigma).T
@@ -745,7 +752,7 @@ class UnscentedMixin(object):
             'initial_state_covariance': array2d,
             'n_dim_state': int,
             'n_dim_obs': int,
-            'random_state': int,
+            'random_state': check_random_state,
         }
 
 

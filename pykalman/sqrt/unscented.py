@@ -147,7 +147,7 @@ def points2moments(points, sigma2_noise=None):
     return Moments(mu.ravel(), sigma2)
 
 
-def moments2points(moments, alpha=1e-3, beta=2.0, kappa=0.0):
+def moments2points(moments, alpha=None, beta=None, kappa=None):
     '''Calculate "sigma points" used in Unscented Kalman Filter
 
     Parameters
@@ -170,6 +170,13 @@ def moments2points(moments, alpha=1e-3, beta=2.0, kappa=0.0):
     (mu, sigma2) = moments
     n_dim = len(mu)
     mu = array2d(mu, dtype=float)
+
+    if alpha is None:
+      alpha = 1.0
+    if beta is None:
+      beta = 0.0
+    if kappa is None:
+      kappa = 3.0 - n_dim
 
     # just because I saw it in the MATLAB implementation
     sigma2 = sigma2.T

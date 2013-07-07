@@ -40,7 +40,7 @@ transition_covariance = np.eye(2)
 random_state = np.random.RandomState(0)
 observation_covariance = np.eye(2) + random_state.randn(2, 2) * 0.1
 initial_state_mean = [0, 0]
-initial_state_covariance = [[1, 0.1], [-0.1, 1]]
+initial_state_covariance = [[1, 0.1], [ 0.1, 1]]
 
 # sample from model
 ukf = UnscentedKalmanFilter(
