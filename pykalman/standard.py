@@ -966,8 +966,8 @@ class KalmanFilter(object):
     [n_dim_state,n_dim_state] array-like
         Also known as :math:`A`.  state transition matrix between times t and
         t+1 for t in [0...n_timesteps-2]
-    observation_matrices : [n_timesteps, n_dim_obs, n_dim_obs] or [n_dim_obs, \
-    n_dim_obs] array-like
+    observation_matrices : [n_timesteps, n_dim_obs, n_dim_state] or [n_dim_obs, \
+    n_dim_state] array-like
         Also known as :math:`C`.  observation matrix for times
         [0...n_timesteps-1]
     transition_covariance : [n_dim_state, n_dim_state] array-like
