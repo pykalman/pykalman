@@ -55,8 +55,8 @@ smoothed_state_estimates = kf.smooth(observations)[0]
 # draw estimates
 pl.figure()
 lines_true = pl.plot(states, color='b')
-lines_filt = pl.plot(filtered_state_estimates, color='r')
-lines_smooth = pl.plot(smoothed_state_estimates, color='g')
+lines_filt = pl.plot(filtered_state_estimates, color='r', ls='-')
+lines_smooth = pl.plot(smoothed_state_estimates, color='g', ls='-.')
 pl.legend((lines_true[0], lines_filt[0], lines_smooth[0]),
           ('true', 'filt', 'smooth'),
           loc='lower left'
