@@ -63,8 +63,8 @@ akf_state_estimates = akf.filter(observations)[0]
 # draw estimates
 pl.figure()
 lines_true = pl.plot(states, color='b')
-lines_ukf = pl.plot(ukf_state_estimates, color='r')
-lines_akf = pl.plot(akf_state_estimates, color='g')
+lines_ukf = pl.plot(ukf_state_estimates, color='r', ls='-')
+lines_akf = pl.plot(akf_state_estimates, color='g', ls='-.')
 pl.legend((lines_true[0], lines_ukf[0], lines_akf[0]),
           ('true', 'UKF', 'AddUKF'),
           loc='upper left'
