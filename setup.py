@@ -11,6 +11,7 @@ setup(
     keywords = 'kalman filter smoothing em hmm tracking unscented ukf kf',
     url = 'http://pykalman.github.com',
     packages = find_packages(),
+    package_data={'pykalman': ['datasets/descr/robot.rst', 'datasets/data/robot.mat']},
     classifiers = [
       'Development Status :: 4 - Beta',
       'Intended Audience :: Science/Research',
