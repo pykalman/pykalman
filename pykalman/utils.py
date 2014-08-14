@@ -119,7 +119,7 @@ def get_params(obj):
 
 
 def preprocess_arguments(argsets, converters):
-    """convert and collect arguments in order of priority
+    """Convert and collect arguments in order of priority.
 
     Parameters
     ----------
