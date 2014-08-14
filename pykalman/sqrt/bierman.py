@@ -7,15 +7,12 @@ This module implements Bierman's version of the Kalman Filter.  In particular,
 the UDU' decomposition of the covariance matrix is used instead of the full
 matrix, where U is upper triangular and D is diagonal.
 """
+
 import warnings
-
 import numpy as np
-from scipy import linalg
-
-from ..standard import _arg_or_default, _determine_dimensionality, \
-    _last_dims, _loglikelihoods, _smooth, _smooth_pair, _em, KalmanFilter, DIM
-from ..utils import array1d, array2d, check_random_state, \
-    get_params
+from ..standard import (_arg_or_default, _last_dims, _loglikelihoods, _smooth,
+                        _smooth_pair, _em, KalmanFilter, DIM)
+from ..utils import get_params
 
 
 def _reconstruct_covariances(covariances):
@@ -35,6 +32,7 @@ def _reconstruct_covariances(covariances):
 
 class UDU_decomposition(object):
     """Represents a UDU' decomposition of a matrix."""
+
     def __init__(self, U, D):
         self.U = U
         self.D = D
@@ -103,8 +101,8 @@ def decorrelate_observations(observation_matrices, observation_offsets,
 
     Returns
     -------
-    observation_matrices2 : [n_timesteps, n_dim_obs, n_dim_obs] or [n_dim_obs, \
-    n_dim_obs] array
+    observation_matrices2 : [n_timesteps, n_dim_obs, n_dim_obs] or \
+    [n_dim_obs, n_dim_obs] array
         observation matrix with each index decorrelated
     observation_offsets2 : [n_timesteps, n_dim_obs] or [n_dim_obs] array
         observations for times [0...n_timesteps-1] with each index decorrelated
@@ -179,8 +177,6 @@ def _filter_predict(transition_matrix, transition_covariance,
     * Gibbs, Bruce P. Advanced Kalman Filtering, Least-Squares, and Modeling: A
       Practical Handbook. Page 401.
     """
-    n_dim_state = len(current_state_mean)
-
     # predict new mean
     predicted_state_mean = (
         np.dot(transition_matrix, current_state_mean)
@@ -194,11 +190,12 @@ def _filter_predict(transition_matrix, transition_covariance,
         .dot(transition_matrix.T)
         + transition_covariance
     )
-    return (predicted_state_mean, predicted_state_covariance)
+    return predicted_state_mean, predicted_state_covariance
 
 
 def _filter_correct_single(UDU, h, R):
-    """Correct predicted state covariance, calculate one column of the Kalman gain
+    """Correct predicted state covariance, calculate one column of the
+    Kalman gain.
 
     Parameters
     ----------
@@ -227,8 +224,8 @@ def _filter_correct_single(UDU, h, R):
 
     U = UDU.U
     D = UDU.D
-    f = h.dot(U)            # len(f) == n_dim_state
-    g = np.diag(D).dot(f)   # len(g) == n_dim-state
+    f = h.dot(U)  # len(f) == n_dim_state
+    g = np.diag(D).dot(f)  # len(g) == n_dim-state
     alpha = f.dot(g) + R
 
     gamma = np.zeros(n_dim_state)
@@ -247,7 +244,7 @@ def _filter_correct_single(UDU, h, R):
         U_bar[:, j] = U[:, j] - (f[j] / gamma[j - 1]) * k
         k = k + g[j] * U[:, j]
 
-    return (UDU_decomposition(U_bar, D_bar), k / alpha)
+    return UDU_decomposition(U_bar, D_bar), k / alpha
 
 
 def _filter_correct(observation_matrix, observation_covariance,
@@ -293,7 +290,6 @@ def _filter_correct(observation_matrix, observation_covariance,
     """
     if not np.any(np.ma.getmask(observation)):
         # extract size of state space
-        n_dim_state = len(predicted_state_mean)
         n_dim_obs = len(observation)
 
         # calculate corrected state mean, covariance
@@ -313,18 +309,14 @@ def _filter_correct(observation_matrix, observation_covariance,
 
             # update corrected state mean
             predicted_observation_mean = h.dot(corrected_state_mean) + b
-            corrected_state_mean = corrected_state_mean + k.dot(o - predicted_observation_mean)
+            corrected_state_mean = \
+                corrected_state_mean + k.dot(o - predicted_observation_mean)
 
     else:
-        n_dim_state = len(predicted_state_mean)
-        n_dim_obs = len(observation)
-
-        kalman_gain = np.zeros((n_dim_state, n_dim_obs))
-
         corrected_state_mean = predicted_state_mean
         corrected_state_covariance = predicted_state_covariance
 
-    return (corrected_state_mean, corrected_state_covariance)
+    return corrected_state_mean, corrected_state_covariance
 
 
 def _filter(transition_matrices, observation_matrices, transition_covariances,
@@ -382,7 +374,6 @@ def _filter(transition_matrices, observation_matrices, transition_covariances,
     """
     n_timesteps = observations.shape[0]
     n_dim_state = len(initial_state_mean)
-    n_dim_obs = observations.shape[1]
 
     # construct containers for outputs
     predicted_state_means = np.zeros((n_timesteps, n_dim_state))
@@ -397,14 +388,12 @@ def _filter(transition_matrices, observation_matrices, transition_covariances,
     # initialize filter
     initial_state_covariance = udu(initial_state_covariance)
     (observation_matrices, observation_offsets,
-     observation_covariances, observations) = (
-        decorrelate_observations(
-            observation_matrices,
-            observation_offsets,
-            observation_covariances,
-            observations
-        )
-    )
+     observation_covariances, observations) = decorrelate_observations(
+         observation_matrices,
+         observation_offsets,
+         observation_covariances,
+         observations
+     )
 
     for t in range(n_timesteps):
         if t == 0:
@@ -451,8 +440,8 @@ class BiermanKalmanFilter(KalmanFilter):
     [n_dim_state,n_dim_state] array-like
         Also known as :math:`A`.  state transition matrix between times t and
         t+1 for t in [0...n_timesteps-2]
-    observation_matrices : [n_timesteps, n_dim_obs, n_dim_state] or [n_dim_obs, \
-    n_dim_state] array-like
+    observation_matrices : [n_timesteps, n_dim_obs, n_dim_state] or \
+    [n_dim_obs, n_dim_state] array-like
         Also known as :math:`C`.  observation matrix for times
         [0...n_timesteps-1]
     transition_covariances : [n_timesteps-1, n_dim_state, n_dim_state] or \
@@ -478,8 +467,8 @@ class BiermanKalmanFilter(KalmanFilter):
         random number generator used in sampling
     em_vars : optional, subset of ['transition_matrices', \
     'observation_matrices', 'transition_offsets', 'observation_offsets', \
-    'transition_covariances', 'observation_covariances', 'initial_state_mean', \
-    'initial_state_covariance'] or 'all'
+    'transition_covariances', 'observation_covariances', \
+    'initial_state_mean', 'initial_state_covariance'] or 'all'
         if `em_vars` is an iterable of strings only variables in `em_vars`
         will be estimated using EM.  if `em_vars` == 'all', then all
         variables will be estimated.
@@ -493,6 +482,7 @@ class BiermanKalmanFilter(KalmanFilter):
         do not specify initial values for `observation_matrices`,
         `observation_offsets`, or `observation_covariance`.
     """
+
     def filter(self, X):
         """Apply the Kalman Filter
 
@@ -525,26 +515,19 @@ class BiermanKalmanFilter(KalmanFilter):
 
         (transition_matrices, transition_offsets, transition_covariances,
          observation_matrices, observation_offsets, observation_covariances,
-         initial_state_mean, initial_state_covariance) = (
+         initial_state_mean, initial_state_covariance) = \
             self._initialize_parameters()
-        )
 
-        (_, _, filtered_state_means,
-         filtered_state_covariances) = (
-            _filter(
-                transition_matrices, observation_matrices,
-                transition_covariances, observation_covariances,
-                transition_offsets, observation_offsets,
-                initial_state_mean, initial_state_covariance,
-                Z
-            )
+        _, _, filtered_state_means, filtered_state_covariances = _filter(
+            transition_matrices, observation_matrices,
+            transition_covariances, observation_covariances,
+            transition_offsets, observation_offsets,
+            initial_state_mean, initial_state_covariance,
+            Z
         )
-
-        filtered_state_covariances = (
+        filtered_state_covariances = \
             _reconstruct_covariances(filtered_state_covariances)
-        )
-
-        return (filtered_state_means, filtered_state_covariances)
+        return filtered_state_means, filtered_state_covariances
 
     def filter_update(self, filtered_state_mean, filtered_state_covariance,
                       observation=None, transition_matrix=None,
@@ -602,9 +585,9 @@ class BiermanKalmanFilter(KalmanFilter):
         # initialize matrices
         (transition_matrices, transition_offsets, transition_covariances,
          observation_matrices, observation_offsets, observation_covariances,
-         initial_state_mean, initial_state_covariance) = (
+         initial_state_mean, initial_state_covariance) = \
             self._initialize_parameters()
-        )
+
         transition_offset = _arg_or_default(
             transition_offset, transition_offsets,
             1, "transition_offset"
@@ -643,39 +626,30 @@ class BiermanKalmanFilter(KalmanFilter):
 
         # decorrelate observations
         (observation_matrix, observation_offset,
-         observation_covariance, observation) = (
-            decorrelate_observations(
-                observation_matrix,
-                observation_offset,
-                observation_covariance,
-                observation
-            )
-        )
-
+         observation_covariance, observation) = decorrelate_observations(
+             observation_matrix,
+             observation_offset,
+             observation_covariance,
+             observation
+         )
         # predict
-        predicted_state_mean, predicted_state_covariance = (
-            _filter_predict(
-                transition_matrix, transition_covariance,
-                transition_offset, filtered_state_mean,
-                filtered_state_covariance
-            )
+        predicted_state_mean, predicted_state_covariance = _filter_predict(
+            transition_matrix, transition_covariance,
+            transition_offset, filtered_state_mean,
+            filtered_state_covariance
         )
-
         # correct
-        (next_filtered_state_mean, next_filtered_state_covariance) = (
-            _filter_correct(
-                observation_matrix, observation_covariance,
-                observation_offset, predicted_state_mean,
-                predicted_state_covariance, observation
-            )
-        )
-
+        (next_filtered_state_mean,
+         next_filtered_state_covariance) = _filter_correct(
+             observation_matrix, observation_covariance,
+             observation_offset, predicted_state_mean,
+             predicted_state_covariance, observation
+         )
         # reconstruct actual covariance
-        next_filtered_state_covariance = (
+        next_filtered_state_covariance = \
             _reconstruct_covariances(next_filtered_state_covariance)
-        )
 
-        return (next_filtered_state_mean, next_filtered_state_covariance)
+        return next_filtered_state_mean, next_filtered_state_covariance
 
     def smooth(self, X):
         """Apply the Kalman Smoother
@@ -704,37 +678,31 @@ class BiermanKalmanFilter(KalmanFilter):
 
         (transition_matrices, transition_offsets, transition_covariances,
          observation_matrices, observation_offsets, observation_covariances,
-         initial_state_mean, initial_state_covariance) = (
+         initial_state_mean, initial_state_covariance) = \
             self._initialize_parameters()
-        )
 
         # run filter
         (predicted_state_means, predicted_state_covariances,
-         filtered_state_means, filtered_state_covariances) = (
-            _filter(
-                transition_matrices, observation_matrices,
-                transition_covariances, observation_covariances,
-                transition_offsets, observation_offsets,
-                initial_state_mean, initial_state_covariance, Z
-            )
-        )
-
+         filtered_state_means, filtered_state_covariances) = _filter(
+             transition_matrices, observation_matrices,
+             transition_covariances, observation_covariances,
+             transition_offsets, observation_offsets,
+             initial_state_mean, initial_state_covariance, Z
+         )
         # construct actual covariance matrices
-        predicted_state_covariances = (
+        predicted_state_covariances = \
             _reconstruct_covariances(predicted_state_covariances)
-        )
-        filtered_state_covariances = (
-            _reconstruct_covariances(filtered_state_covariances)
-        )
 
-        (smoothed_state_means, smoothed_state_covariances) = (
-            _smooth(
-                transition_matrices, filtered_state_means,
-                filtered_state_covariances, predicted_state_means,
-                predicted_state_covariances
-            )[:2]
-        )
-        return (smoothed_state_means, smoothed_state_covariances)
+        filtered_state_covariances = \
+            _reconstruct_covariances(filtered_state_covariances)
+
+        smoothed_state_means, smoothed_state_covariances = _smooth(
+            transition_matrices, filtered_state_means,
+            filtered_state_covariances, predicted_state_means,
+            predicted_state_covariances
+        )[:2]
+
+        return smoothed_state_means, smoothed_state_covariances
 
     def em(self, X, y=None, n_iter=10, em_vars=None):
         """Apply the EM algorithm
@@ -761,9 +729,8 @@ class BiermanKalmanFilter(KalmanFilter):
         (self.transition_matrices, self.transition_offsets,
          self.transition_covariances, self.observation_matrices,
          self.observation_offsets, self.observation_covariances,
-         self.initial_state_mean, self.initial_state_covariance) = (
+         self.initial_state_mean, self.initial_state_covariance) = \
             self._initialize_parameters()
-        )
 
         # Create dictionary of variables not to perform EM on
         if em_vars is None:
@@ -789,9 +756,9 @@ class BiermanKalmanFilter(KalmanFilter):
 
         # If a parameter is time varying, print a warning
         for (k, v) in get_params(self).items():
-            if k in DIM and (not k in given) and len(v.shape) != DIM[k]:
+            if k in DIM and k not in given and len(v.shape) != DIM[k]:
                 warn_str = (
-                    '{0} has {1} dimensions now; after fitting,'+
+                    '{0} has {1} dimensions now; after fitting,' +
                     ' it will have dimension {2}'
                 ).format(k, len(v.shape), DIM[k])
                 warnings.warn(warn_str)
@@ -800,48 +767,39 @@ class BiermanKalmanFilter(KalmanFilter):
         for i in range(n_iter):
             # run filter
             (predicted_state_means, predicted_state_covariances,
-             filtered_state_means, filtered_state_covariances) = (
-                _filter(
-                    self.transition_matrices, self.observation_matrices,
-                    self.transition_covariances, self.observation_covariances,
-                    self.transition_offsets, self.observation_offsets,
-                    self.initial_state_mean, self.initial_state_covariance,
-                    Z
-                )
-            )
-
+             filtered_state_means, filtered_state_covariances) = _filter(
+                 self.transition_matrices, self.observation_matrices,
+                 self.transition_covariances, self.observation_covariances,
+                 self.transition_offsets, self.observation_offsets,
+                 self.initial_state_mean, self.initial_state_covariance,
+                 Z
+             )
             # reconstruct covariances
-            filtered_state_covariances = (
+            filtered_state_covariances = \
                 _reconstruct_covariances(filtered_state_covariances)
-            )
-            predicted_state_covariances = (
+            predicted_state_covariances = \
                 _reconstruct_covariances(predicted_state_covariances)
-            )
 
             # run smoother
             (smoothed_state_means, smoothed_state_covariances,
-             kalman_smoothing_gains) = (
-                _smooth(
-                    self.transition_matrices, filtered_state_means,
-                    filtered_state_covariances, predicted_state_means,
-                    predicted_state_covariances
-                )
-            )
+             kalman_smoothing_gains) = _smooth(
+                 self.transition_matrices, filtered_state_means,
+                 filtered_state_covariances, predicted_state_means,
+                 predicted_state_covariances
+             )
 
             # calculate pairwise covariances
             sigma_pair_smooth = _smooth_pair(
                 smoothed_state_covariances,
                 kalman_smoothing_gains
             )
-            (self.transition_matrices,  self.observation_matrices,
+            (self.transition_matrices, self.observation_matrices,
              self.transition_offsets, self.observation_offsets,
              self.transition_covariances, self.observation_covariances,
-             self.initial_state_mean, self.initial_state_covariance) = (
+             self.initial_state_mean, self.initial_state_covariance) = \
                 _em(Z, self.transition_offsets, self.observation_offsets,
                     smoothed_state_means, smoothed_state_covariances,
-                    sigma_pair_smooth, given=given
-                )
-            )
+                    sigma_pair_smooth, given=given)
         return self
 
     def loglikelihood(self, X):
@@ -863,26 +821,23 @@ class BiermanKalmanFilter(KalmanFilter):
         (transition_matrices, transition_offsets,
          transition_covariances, observation_matrices,
          observation_offsets, observation_covariances,
-         initial_state_mean, initial_state_covariance) = (
+         initial_state_mean, initial_state_covariance) = \
             self._initialize_parameters()
-        )
 
         # apply the Kalman Filter
         (predicted_state_means, predicted_state_covariances,
-         filtered_state_means, filtered_state_covariances) = (
-            _filter(
-                transition_matrices, observation_matrices,
-                transition_covariances, observation_covariances,
-                transition_offsets, observation_offsets,
-                initial_state_mean, initial_state_covariance,
-                Z
-            )
-        )
+         filtered_state_means, filtered_state_covariances) = _filter(
+             transition_matrices, observation_matrices,
+             transition_covariances, observation_covariances,
+             transition_offsets, observation_offsets,
+             initial_state_mean, initial_state_covariance,
+             Z
+         )
 
         # get likelihoods for each time step
-        predicted_state_covariances = (
+        predicted_state_covariances = \
             _reconstruct_covariances(predicted_state_covariances)
-        )
+
         loglikelihoods = _loglikelihoods(
             observation_matrices, observation_offsets, observation_covariances,
             predicted_state_means, predicted_state_covariances, Z
