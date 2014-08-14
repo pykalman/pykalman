@@ -111,7 +111,7 @@ class KalmanFilterTests(object):
         )
 
     def test_kalman_fit(self):
-        # check against MATLAB dataset
+        # check against MATLAB datase
         kf = self.KF(
             self.data.transition_matrix,
             self.data.observation_matrix,
@@ -121,12 +121,14 @@ class KalmanFilterTests(object):
             self.data.observation_offset,
             self.data.initial_state_mean,
             self.data.initial_state_covariance,
-            em_vars=['transition_covariance', 'observation_covariance'])
+            em_vars=['transition_covariances', 'observation_covariances'])
 
         loglikelihoods = np.zeros(5)
         for i in range(len(loglikelihoods)):
             loglikelihoods[i] = kf.loglikelihood(self.data.observations)
             kf.em(X=self.data.observations, n_iter=1)
+
+        print(loglikelihoods, self.data.loglikelihoods[:5], sep='\n')
 
         assert_true(np.allclose(loglikelihoods, self.data.loglikelihoods[:5]))
 
@@ -142,7 +144,7 @@ class KalmanFilterTests(object):
     def test_kalman_initialize_parameters(self):
         self.check_dims(5, 1, {'transition_matrices': np.eye(5)})
         self.check_dims(1, 3, {'observation_offsets': np.zeros(3)})
-        self.check_dims(2, 3, {'transition_covariance': np.eye(2),
+        self.check_dims(2, 3, {'transition_covariances': np.eye(2),
                           'observation_offsets': np.zeros(3)})
         self.check_dims(3, 2, {'n_dim_state': 3, 'n_dim_obs': 2})
         self.check_dims(4, 1, {'initial_state_mean': np.zeros(4)})
@@ -199,4 +201,3 @@ class KalmanFilterTestSuite(TestCase, KalmanFilterTests):
     def setUp(self):
         self.KF = KalmanFilter
         self.data = load_robot()
-

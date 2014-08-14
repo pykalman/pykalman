@@ -20,8 +20,8 @@ DIM = {
     'transition_offsets': 1,
     'observation_matrices': 2,
     'observation_offsets': 1,
-    'transition_covariance': 2,
-    'observation_covariance': 2,
+    'transition_covariances': 2,
+    'observation_covariances': 2,
     'initial_state_mean': 1,
     'initial_state_covariance': 2,
 }
@@ -110,7 +110,7 @@ def _last_dims(X, t, ndims=2):
 
 
 def _loglikelihoods(observation_matrices, observation_offsets,
-                    observation_covariance, predicted_state_means,
+                    observation_covariances, predicted_state_means,
                     predicted_state_covariances, observations):
     """Calculate log likelihood of all observations
 
@@ -121,8 +121,9 @@ def _loglikelihoods(observation_matrices, observation_offsets,
         observation matrices for t in [0...n_timesteps-1]
     observation_offsets : [n_timesteps, n_dim_obs] or [n_dim_obs] array
         offsets for observations for t = [0...n_timesteps-1]
-    observation_covariance : [n_dim_obs, n_dim_obs] array
-        covariance matrix for all observations
+    observation_covariances : [n_timesteps, n_dim_obs, n_dim_obs] or 
+    [n_dim_obs, n_dim_obs] array
+        covariance matrices for all observations
     predicted_state_means : [n_timesteps, n_dim_state] array
         mean of state at time t given observations from times
         [0...t-1] for t in [0...n_timesteps-1]
@@ -146,6 +147,7 @@ def _loglikelihoods(observation_matrices, observation_offsets,
         if not np.any(np.ma.getmask(observation)):
             observation_matrix = _last_dims(observation_matrices, t)
             observation_offset = _last_dims(observation_offsets, t, ndims=1)
+            observation_covariance = _last_dims(observation_covariances, t)
             predicted_state_mean = _last_dims(
                 predicted_state_means, t, ndims=1
             )
@@ -182,7 +184,7 @@ def _filter_predict(transition_matrix, transition_covariance,
 
     Parameters
     ----------
-    transition_matrix : [n_dim_state, n_dim_state} array
+    transition_matrix : [n_dim_state, n_dim_state] array
         state transition matrix from time t to t+1
     transition_covariance : [n_dim_state, n_dim_state] array
         covariance matrix for state transition from time t to t+1
@@ -295,8 +297,8 @@ def _filter_correct(observation_matrix, observation_covariance,
             corrected_state_covariance)
 
 
-def _filter(transition_matrices, observation_matrices, transition_covariance,
-            observation_covariance, transition_offsets, observation_offsets,
+def _filter(transition_matrices, observation_matrices, transition_covariances,
+            observation_covariances, transition_offsets, observation_offsets,
             initial_state_mean, initial_state_covariance, observations):
     """Apply the Kalman Filter
 
@@ -308,20 +310,20 @@ def _filter(transition_matrices, observation_matrices, transition_covariance,
     transition_matrices : [n_timesteps-1,n_dim_state,n_dim_state] or
     [n_dim_state,n_dim_state] array-like
         state transition matrices
-    observation_matrices : [n_timesteps, n_dim_obs, n_dim_obs] or [n_dim_obs, \
+    observation_matrices : [n_timesteps, n_dim_obs, n_dim_obs] or [n_dim_obs,
     n_dim_obs] array-like
-        observation matrix
-    transition_covariance : [n_timesteps-1,n_dim_state,n_dim_state] or
-    [n_dim_state,n_dim_state] array-like
-        state transition covariance matrix
-    observation_covariance : [n_timesteps, n_dim_obs, n_dim_obs] or [n_dim_obs,
-    n_dim_obs] array-like
-        observation covariance matrix
-    transition_offsets : [n_timesteps-1, n_dim_state] or [n_dim_state] \
+        observation matrices
+    transition_covariances : [n_timesteps-1, n_dim_state, n_dim_state] or
+    [n_dim_state, n_dim_state] array-like
+        state transition covariance matrices
+    observation_covariances : [n_timesteps, n_dim_obs, n_dim_obs] or 
+    [n_dim_obs, n_dim_obs] array-like
+        observation covariance matrices
+    transition_offsets : [n_timesteps-1, n_dim_state] or [n_dim_state]
     array-like
-        state offset
+        state transition offsets
     observation_offsets : [n_timesteps, n_dim_obs] or [n_dim_obs] array-like
-        observations for times [0...n_timesteps-1]
+        observations offsets
     initial_state_mean : [n_dim_state] array-like
         mean of initial state distribution
     initial_state_covariance : [n_dim_state, n_dim_state] array-like
@@ -368,7 +370,7 @@ def _filter(transition_matrices, observation_matrices, transition_covariance,
             predicted_state_covariances[t] = initial_state_covariance
         else:
             transition_matrix = _last_dims(transition_matrices, t - 1)
-            transition_covariance = _last_dims(transition_covariance, t - 1)
+            transition_covariance = _last_dims(transition_covariances, t - 1)
             transition_offset = _last_dims(transition_offsets, t - 1, ndims=1)
             predicted_state_means[t], predicted_state_covariances[t] = (
                 _filter_predict(
@@ -381,7 +383,7 @@ def _filter(transition_matrices, observation_matrices, transition_covariance,
             )
 
         observation_matrix = _last_dims(observation_matrices, t)
-        observation_covariance = _last_dims(observation_covariance, t)
+        observation_covariance = _last_dims(observation_covariances, t)
         observation_offset = _last_dims(observation_offsets, t, ndims=1)
         (kalman_gains[t], filtered_state_means[t],
          filtered_state_covariances[t]) = (
@@ -623,8 +625,8 @@ def _em(observations, transition_offsets, observation_offsets,
             smoothed_state_means, smoothed_state_covariances
         )
 
-    if 'observation_covariance' in given:
-        observation_covariance = given['observation_covariance']
+    if 'observation_covariances' in given:
+        observation_covariance = given['observation_covariances']
     else:
         observation_covariance = _em_observation_covariance(
             observations, observation_offsets,
@@ -640,8 +642,8 @@ def _em(observations, transition_offsets, observation_offsets,
             smoothed_state_covariances, pairwise_covariances
         )
 
-    if 'transition_covariance' in given:
-        transition_covariance = given['transition_covariance']
+    if 'transition_covariances' in given:
+        transition_covariance = given['transition_covariances']
     else:
         transition_covariance = _em_transition_covariance(
             transition_matrix, transition_offsets,
@@ -970,14 +972,16 @@ class KalmanFilter(object):
     n_dim_state] array-like
         Also known as :math:`C`.  observation matrix for times
         [0...n_timesteps-1]
-    transition_covariance : [n_dim_state, n_dim_state] array-like
+    transition_covariances : [n_timesteps-1, n_dim_state, n_dim_state] or \
+    [n_dim_state, n_dim_state] array-like
         Also known as :math:`Q`.  state transition covariance matrix for times
         [0...n_timesteps-2]
-    observation_covariance : [n_dim_obs, n_dim_obs] array-like
+    observation_covariances : [n_timesteps, n_dim_obs, n_dim_obs] or \
+    [n_dim_obs, n_dim_obs] array-like
         Also known as :math:`R`.  observation covariance matrix for times
         [0...n_timesteps-1]
-    transition_offsets : [n_timesteps-1, n_dim_state] or [n_dim_state] \
-    array-like
+    transition_offsets : [n_timesteps-1, n_dim_state] or \
+    [n_dim_state] array-like
         Also known as :math:`b`.  state offsets for times [0...n_timesteps-2]
     observation_offsets : [n_timesteps, n_dim_obs] or [n_dim_obs] array-like
         Also known as :math:`d`.  observation offset for times
@@ -991,7 +995,7 @@ class KalmanFilter(object):
         random number generator used in sampling
     em_vars : optional, subset of ['transition_matrices', \
     'observation_matrices', 'transition_offsets', 'observation_offsets', \
-    'transition_covariance', 'observation_covariance', 'initial_state_mean', \
+    'transition_covariances', 'observation_covariances', 'initial_state_mean', \
     'initial_state_covariance'] or 'all'
         if `em_vars` is an iterable of strings only variables in `em_vars`
         will be estimated using EM.  if `em_vars` == 'all', then all
@@ -1007,11 +1011,11 @@ class KalmanFilter(object):
         `observation_offsets`, or `observation_covariance`.
     """
     def __init__(self, transition_matrices=None, observation_matrices=None,
-            transition_covariance=None, observation_covariance=None,
+            transition_covariances=None, observation_covariances=None,
             transition_offsets=None, observation_offsets=None,
             initial_state_mean=None, initial_state_covariance=None,
             random_state=None,
-            em_vars=['transition_covariance', 'observation_covariance',
+            em_vars=['transition_covariances', 'observation_covariances',
                      'initial_state_mean', 'initial_state_covariance'],
             n_dim_state=None, n_dim_obs=None):
         """Initialize Kalman Filter"""
@@ -1020,7 +1024,7 @@ class KalmanFilter(object):
         n_dim_state = _determine_dimensionality(
             [(transition_matrices, array2d, -2),
              (transition_offsets, array1d, -1),
-             (transition_covariance, array2d, -2),
+             (transition_covariances, array2d, -2),
              (initial_state_mean, array1d, -1),
              (initial_state_covariance, array2d, -2),
              (observation_matrices, array2d, -1)],
@@ -1029,14 +1033,14 @@ class KalmanFilter(object):
         n_dim_obs = _determine_dimensionality(
             [(observation_matrices, array2d, -2),
              (observation_offsets, array1d, -1),
-             (observation_covariance, array2d, -2)],
+             (observation_covariances, array2d, -2)],
             n_dim_obs
         )
 
         self.transition_matrices = transition_matrices
         self.observation_matrices = observation_matrices
-        self.transition_covariance = transition_covariance
-        self.observation_covariance = observation_covariance
+        self.transition_covariances = transition_covariances
+        self.observation_covariances = observation_covariances
         self.transition_offsets = transition_offsets
         self.observation_offsets = observation_offsets
         self.initial_state_mean = initial_state_mean
@@ -1062,8 +1066,8 @@ class KalmanFilter(object):
         observations : [n_timesteps, n_dim_obs] array
             observations corresponding to times [0...n_timesteps-1]
         """
-        (transition_matrices, transition_offsets, transition_covariance,
-         observation_matrices, observation_offsets, observation_covariance,
+        (transition_matrices, transition_offsets, transition_covariances,
+         observation_matrices, observation_offsets, observation_covariances,
          initial_state_mean, initial_state_covariance) = (
             self._initialize_parameters()
         )
@@ -1098,7 +1102,7 @@ class KalmanFilter(object):
                     transition_offsets, t - 1, ndims=1
                 )
                 transition_covariance = _last_dims(
-                    transition_covariance, t - 1
+                    transition_covariances, t - 1
                 )
                 states[t] = (
                     np.dot(transition_matrix, states[t - 1])
@@ -1116,7 +1120,7 @@ class KalmanFilter(object):
                 observation_offsets, t, ndims=1
             )
             observation_covariance = _last_dims(
-                observation_covariance, t
+                observation_covariances, t
             )
             observations[t] = (
                 np.dot(observation_matrix, states[t])
@@ -1159,8 +1163,8 @@ class KalmanFilter(object):
         """
         Z = self._parse_observations(X)
 
-        (transition_matrices, transition_offsets, transition_covariance,
-         observation_matrices, observation_offsets, observation_covariance,
+        (transition_matrices, transition_offsets, transition_covariances,
+         observation_matrices, observation_offsets, observation_covariances,
          initial_state_mean, initial_state_covariance) = (
             self._initialize_parameters()
         )
@@ -1169,7 +1173,7 @@ class KalmanFilter(object):
          filtered_state_covariances) = (
             _filter(
                 transition_matrices, observation_matrices,
-                transition_covariance, observation_covariance,
+                transition_covariances, observation_covariances,
                 transition_offsets, observation_offsets,
                 initial_state_mean, initial_state_covariance,
                 Z
@@ -1231,8 +1235,8 @@ class KalmanFilter(object):
             from times [1...t+1]
         """
         # initialize matrices
-        (transition_matrices, transition_offsets, transition_cov,
-         observation_matrices, observation_offsets, observation_cov,
+        (transition_matrices, transition_offsets, transition_covariances,
+         observation_matrices, observation_offsets, observation_covariances,
          initial_state_mean, initial_state_covariance) = (
             self._initialize_parameters()
         )
@@ -1253,11 +1257,11 @@ class KalmanFilter(object):
             2, "observation_matrix"
         )
         transition_covariance = _arg_or_default(
-            transition_covariance, transition_cov,
+            transition_covariance, transition_covariances,
             2, "transition_covariance"
         )
         observation_covariance = _arg_or_default(
-            observation_covariance, observation_cov,
+            observation_covariance, observation_covariances,
             2, "observation_covariance"
         )
 
@@ -1312,8 +1316,8 @@ class KalmanFilter(object):
         """
         Z = self._parse_observations(X)
 
-        (transition_matrices, transition_offsets, transition_covariance,
-         observation_matrices, observation_offsets, observation_covariance,
+        (transition_matrices, transition_offsets, transition_covariances,
+         observation_matrices, observation_offsets, observation_covariances,
          initial_state_mean, initial_state_covariance) = (
             self._initialize_parameters()
         )
@@ -1322,7 +1326,7 @@ class KalmanFilter(object):
          _, filtered_state_means, filtered_state_covariances) = (
             _filter(
                 transition_matrices, observation_matrices,
-                transition_covariance, observation_covariance,
+                transition_covariances, observation_covariances,
                 transition_offsets, observation_offsets,
                 initial_state_mean, initial_state_covariance, Z
             )
@@ -1359,8 +1363,8 @@ class KalmanFilter(object):
 
         # initialize parameters
         (self.transition_matrices, self.transition_offsets,
-         self.transition_covariance, self.observation_matrices,
-         self.observation_offsets, self.observation_covariance,
+         self.transition_covariances, self.observation_matrices,
+         self.observation_offsets, self.observation_covariances,
          self.initial_state_mean, self.initial_state_covariance) = (
             self._initialize_parameters()
         )
@@ -1377,8 +1381,8 @@ class KalmanFilter(object):
                 'observation_matrices': self.observation_matrices,
                 'transition_offsets': self.transition_offsets,
                 'observation_offsets': self.observation_offsets,
-                'transition_covariance': self.transition_covariance,
-                'observation_covariance': self.observation_covariance,
+                'transition_covariances': self.transition_covariances,
+                'observation_covariances': self.observation_covariances,
                 'initial_state_mean': self.initial_state_mean,
                 'initial_state_covariance': self.initial_state_covariance
             }
@@ -1403,7 +1407,7 @@ class KalmanFilter(object):
              filtered_state_covariances) = (
                 _filter(
                     self.transition_matrices, self.observation_matrices,
-                    self.transition_covariance, self.observation_covariance,
+                    self.transition_covariances, self.observation_covariances,
                     self.transition_offsets, self.observation_offsets,
                     self.initial_state_mean, self.initial_state_covariance,
                     Z
@@ -1421,9 +1425,9 @@ class KalmanFilter(object):
                 smoothed_state_covariances,
                 kalman_smoothing_gains
             )
-            (self.transition_matrices,  self.observation_matrices,
+            (self.transition_matrices, self.observation_matrices,
              self.transition_offsets, self.observation_offsets,
-             self.transition_covariance, self.observation_covariance,
+             self.transition_covariances, self.observation_covariances,
              self.initial_state_mean, self.initial_state_covariance) = (
                 _em(Z, self.transition_offsets, self.observation_offsets,
                     smoothed_state_means, smoothed_state_covariances,
@@ -1449,8 +1453,8 @@ class KalmanFilter(object):
 
         # initialize parameters
         (transition_matrices, transition_offsets,
-         transition_covariance, observation_matrices,
-         observation_offsets, observation_covariance,
+         transition_covariances, observation_matrices,
+         observation_offsets, observation_covariances,
          initial_state_mean, initial_state_covariance) = (
             self._initialize_parameters()
         )
@@ -1461,7 +1465,7 @@ class KalmanFilter(object):
          filtered_state_covariances) = (
             _filter(
                 transition_matrices, observation_matrices,
-                transition_covariance, observation_covariance,
+                transition_covariances, observation_covariances,
                 transition_offsets, observation_offsets,
                 initial_state_mean, initial_state_covariance,
                 Z
@@ -1470,7 +1474,7 @@ class KalmanFilter(object):
 
         # get likelihoods for each time step
         loglikelihoods = _loglikelihoods(
-          observation_matrices, observation_offsets, observation_covariance,
+          observation_matrices, observation_offsets, observation_covariances,
           predicted_state_means, predicted_state_covariances, Z
         )
 
@@ -1484,16 +1488,16 @@ class KalmanFilter(object):
         defaults = {
             'transition_matrices': np.eye(n_dim_state),
             'transition_offsets': np.zeros(n_dim_state),
-            'transition_covariance': np.eye(n_dim_state),
+            'transition_covariances': np.eye(n_dim_state),
             'observation_matrices': np.eye(n_dim_obs, n_dim_state),
             'observation_offsets': np.zeros(n_dim_obs),
-            'observation_covariance': np.eye(n_dim_obs),
+            'observation_covariances': np.eye(n_dim_obs),
             'initial_state_mean': np.zeros(n_dim_state),
             'initial_state_covariance': np.eye(n_dim_state),
             'random_state': 0,
             'em_vars': [
-                'transition_covariance',
-                'observation_covariance',
+                'transition_covariances',
+                'observation_covariances',
                 'initial_state_mean',
                 'initial_state_covariance'
             ],
@@ -1501,10 +1505,10 @@ class KalmanFilter(object):
         converters = {
             'transition_matrices': array2d,
             'transition_offsets': array1d,
-            'transition_covariance': array2d,
+            'transition_covariances': array2d,
             'observation_matrices': array2d,
             'observation_offsets': array1d,
-            'observation_covariance': array2d,
+            'observation_covariances': array2d,
             'initial_state_mean': array1d,
             'initial_state_covariance': array2d,
             'random_state': check_random_state,
@@ -1518,10 +1522,10 @@ class KalmanFilter(object):
         return (
             parameters['transition_matrices'],
             parameters['transition_offsets'],
-            parameters['transition_covariance'],
+            parameters['transition_covariances'],
             parameters['observation_matrices'],
             parameters['observation_offsets'],
-            parameters['observation_covariance'],
+            parameters['observation_covariances'],
             parameters['initial_state_mean'],
             parameters['initial_state_covariance']
         )
