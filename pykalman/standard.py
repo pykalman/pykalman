@@ -116,7 +116,7 @@ def _loglikelihoods(observation_matrices, observation_offsets,
 
     Parameters
     ----------
-    observation_matrices : [n_timesteps, n_dim_obs, n_dim_obs] or [n_dim_obs,
+    observation_matrices : [n_timesteps, n_dim_obs, n_dim_state] or [n_dim_obs,
     n_dim_state] array
         observation matrices for t in [0...n_timesteps-1]
     observation_offsets : [n_timesteps, n_dim_obs] or [n_dim_obs] array
@@ -308,8 +308,8 @@ def _filter(transition_matrices, observation_matrices, transition_covariance,
     transition_matrices : [n_timesteps-1,n_dim_state,n_dim_state] or
     [n_dim_state,n_dim_state] array-like
         state transition matrices
-    observation_matrices : [n_timesteps, n_dim_obs, n_dim_obs] or [n_dim_obs, \
-    n_dim_obs] array-like
+    observation_matrices : [n_timesteps, n_dim_obs, n_dim_state] or [n_dim_obs, \
+    n_dim_state] array-like
         observation matrix
     transition_covariance : [n_timesteps-1,n_dim_state,n_dim_state] or
     [n_dim_state,n_dim_state] array-like
