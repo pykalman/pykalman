@@ -175,7 +175,7 @@ def _loglikelihoods(observation_matrices, observation_offsets,
 def _filter_predict(transition_matrix, transition_covariance,
                     transition_offset, current_state_mean,
                     current_state_covariance):
-    r"""Calculate the mean and covariance of :math:`P(x_{t+1} | z_{0:t})`
+    """Calculate the mean and covariance of :math:`P(x_{t+1} | z_{0:t})`
 
     Using the mean and covariance of :math:`P(x_t | z_{0:t})`, calculate the
     mean and covariance of :math:`P(x_{t+1} | z_{0:t})`.
