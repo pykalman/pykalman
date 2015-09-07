@@ -22,13 +22,20 @@ setup(
       'Topic :: Scientific/Engineering :: Artificial Intelligence'
     ],
     include_package_data = True,
-#    install_requires = [
-#      'numpy',
-#      'scipy',
-#      'Sphinx',
-#      'numpydoc',
-#    ],
-#    tests_require = [
-#      'nose',
-#    ]
+    install_requires = [
+      'numpy',
+      'scipy',
+    ],
+    tests_require = [
+      'nose',
+    ],
+    extras_require = {
+        'docs': [
+          'Sphinx',
+          'numpydoc',
+        ],
+        'tests': [
+          'nose',
+        ],
+    },
 )
