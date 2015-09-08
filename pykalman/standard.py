@@ -615,6 +615,74 @@ def _em(observations, transition_offsets, observation_offsets,
     initial_state_covariance : [n_dim_state] array
         estimated covariance of initial state distribution
     """
+    return _em_multiple(
+        [observations], transition_offsets, observation_offsets,
+        [smoothed_state_means], [smoothed_state_covariances],
+        [pairwise_covariances], given
+    )
+
+
+def _em_multiple(all_observations, transition_offsets, observation_offsets,
+                 all_smoothed_state_means, all_smoothed_state_covariances,
+                 all_pairwise_covariances, given={}):
+    """Apply the EM Algorithm to the Linear-Gaussian model
+
+    Estimate Linear-Gaussian model parameters by maximizing the expected log
+    likelihood of all observations.
+
+    Parameters
+    ----------
+    observations : list of [n_timesteps, n_dim_obs] arrays
+        observations for times [0...n_timesteps-1]. If observations is a
+        masked array and any of observations[t] is masked, then it will be
+        treated as a missing observation.
+    transition_offsets : [n_dim_state] or [n_timesteps-1, n_dim_state] array
+        transition offset
+    observation_offsets : [n_dim_obs] or [n_timesteps, n_dim_obs] array
+        observation offsets
+    all_smoothed_state_means : list of [n_timesteps, n_dim_state] arrays
+        smoothed_state_means[t] = mean of state at time t given all
+        observations
+    all_smoothed_state_covariances : list of [n_timesteps, n_dim_state, \
+    n_dim_state] arrays
+        smoothed_state_covariances[t] = covariance of state at time t given all
+        observations
+    all_pairwise_covariances : list of [n_timesteps, n_dim_state, \
+    n_dim_state] arrays
+        pairwise_covariances[t] = covariance between states at times t and
+        t-1 given all observations.  pairwise_covariances[0] is ignored.
+    given: dict
+        if one of the variables EM is capable of predicting is in given, then
+        that value will be used and EM will not attempt to estimate it.  e.g.,
+        if 'observation_matrix' is in given, observation_matrix will not be
+        estimated and given['observation_matrix'] will be returned in its
+        place.
+
+    Returns
+    -------
+    transition_matrix : [n_dim_state, n_dim_state] array
+        estimated transition matrix
+    observation_matrix : [n_dim_obs, n_dim_state] array
+        estimated observation matrix
+    transition_offsets : [n_dim_state] array
+        estimated transition offset
+    observation_offsets : [n_dim_obs] array
+        estimated observation offset
+    transition_covariance : [n_dim_state, n_dim_state] array
+        estimated covariance matrix for state transitions
+    observation_covariance : [n_dim_obs, n_dim_obs] array
+        estimated covariance matrix for observations
+    initial_state_mean : [n_dim_state] array
+        estimated mean of initial state distribution
+    initial_state_covariance : [n_dim_state] array
+        estimated covariance of initial state distribution
+    """
+    observations = np.vstack(all_observations)
+    smoothed_state_means = np.vstack(all_smoothed_state_means)
+    smoothed_state_covariances = np.vstack(all_smoothed_state_covariances)
+    pairwise_covariances = np.vstack(all_pairwise_covariances)
+    begin_idx = [0] + [obs.shape[0] for obs in all_observations[:-1]]
+
     if 'observation_matrices' in given:
         observation_matrix = given['observation_matrices']
     else:
@@ -637,7 +705,7 @@ def _em(observations, transition_offsets, observation_offsets,
     else:
         transition_matrix = _em_transition_matrix(
             transition_offsets, smoothed_state_means,
-            smoothed_state_covariances, pairwise_covariances
+            smoothed_state_covariances, pairwise_covariances, begin_idx
         )
 
     if 'transition_covariance' in given:
@@ -646,20 +714,21 @@ def _em(observations, transition_offsets, observation_offsets,
         transition_covariance = _em_transition_covariance(
             transition_matrix, transition_offsets,
             smoothed_state_means, smoothed_state_covariances,
-            pairwise_covariances
+            pairwise_covariances, begin_idx
         )
 
     if 'initial_state_mean' in given:
         initial_state_mean = given['initial_state_mean']
     else:
-        initial_state_mean = _em_initial_state_mean(smoothed_state_means)
+        initial_state_mean = _em_initial_state_mean(smoothed_state_means,
+                                                    begin_idx)
 
     if 'initial_state_covariance' in given:
         initial_state_covariance = given['initial_state_covariance']
     else:
         initial_state_covariance = _em_initial_state_covariance(
             initial_state_mean, smoothed_state_means,
-            smoothed_state_covariances
+            smoothed_state_covariances, begin_idx
         )
 
     if 'transition_offsets' in given:
@@ -755,7 +824,8 @@ def _em_observation_covariance(observations, observation_offsets,
 
 
 def _em_transition_matrix(transition_offsets, smoothed_state_means,
-                          smoothed_state_covariances, pairwise_covariances):
+                          smoothed_state_covariances, pairwise_covariances,
+                          begin_idx=(0,)):
     r"""Apply the EM algorithm to parameter `transition_matrix`
 
     Maximize expected log likelihood of observations with respect to the state
@@ -763,32 +833,35 @@ def _em_transition_matrix(transition_offsets, smoothed_state_means,
 
     .. math::
 
-        A &= ( \sum_{t=1}^{T-1} \mathbb{E}[x_t x_{t-1}^{T}]
-                - b_{t-1} \mathbb{E}[x_{t-1}]^T )
-             ( \sum_{t=1}^{T-1} \mathbb{E}[x_{t-1} x_{t-1}^T] )^{-1}
+        A &= ( \sum_{i=0}^{N-1} \sum_{t=1}^{T_i-1}
+                \mathbb{E}[x_{i,t} x_{i,t-1}^{T}]
+                - b_{i,t-1} \mathbb{E}[x_{i,t-1}]^T )
+             ( \sum_{i=0}^{N-1} \sum_{t=1}^{T_i-1}
+                \mathbb{E}[x_{i,t-1} x_{i,t-1}^T] )^{-1}
     """
     n_timesteps, n_dim_state, _ = smoothed_state_covariances.shape
     res1 = np.zeros((n_dim_state, n_dim_state))
     res2 = np.zeros((n_dim_state, n_dim_state))
     for t in range(1, n_timesteps):
-        transition_offset = _last_dims(transition_offsets, t - 1, ndims=1)
-        res1 += (
-            pairwise_covariances[t]
-            + np.outer(smoothed_state_means[t],
-                       smoothed_state_means[t - 1])
-            - np.outer(transition_offset, smoothed_state_means[t - 1])
-        )
-        res2 += (
-            smoothed_state_covariances[t - 1]
-            + np.outer(smoothed_state_means[t - 1],
-                       smoothed_state_means[t - 1])
-        )
+        if t not in begin_idx:
+            transition_offset = _last_dims(transition_offsets, t - 1, ndims=1)
+            res1 += (
+                pairwise_covariances[t]
+                + np.outer(smoothed_state_means[t],
+                           smoothed_state_means[t - 1])
+                - np.outer(transition_offset, smoothed_state_means[t - 1])
+            )
+            res2 += (
+                smoothed_state_covariances[t - 1]
+                + np.outer(smoothed_state_means[t - 1],
+                           smoothed_state_means[t - 1])
+            )
     return np.dot(res1, linalg.pinv(res2))
 
 
 def _em_transition_covariance(transition_matrices, transition_offsets,
                               smoothed_state_means, smoothed_state_covariances,
-                              pairwise_covariances):
+                              pairwise_covariances, begin_idx=(0,)):
     r"""Apply the EM algorithm to parameter `transition_covariance`
 
     Maximize expected log likelihood of observations with respect to the
@@ -796,39 +869,44 @@ def _em_transition_covariance(transition_matrices, transition_offsets,
 
     .. math::
 
-        Q &= \frac{1}{T-1} \sum_{t=0}^{T-2}
-                (\mathbb{E}[x_{t+1}] - A_t \mathbb{E}[x_t] - b_t)
-                    (\mathbb{E}[x_{t+1}] - A_t \mathbb{E}[x_t] - b_t)^T
-                + A_t Var(x_t) A_t^T + Var(x_{t+1})
-                - Cov(x_{t+1}, x_t) A_t^T - A_t Cov(x_t, x_{t+1})
+        Q &= \frac{1}{\sum_{i=0}^{N-1} T_i - N}
+                \sum_{i=0}^{N-1} \sum_{t=0}^{T_i-2}
+                (\mathbb{E}[x_{i,t+1}] - A_{i,t} \mathbb{E}[x_{i,t}] - b_{i,t})
+                    (\mathbb{E}[x_{i,t+1}] - A_{i,t} \mathbb{E}[x_{i,t}]
+                     - b_{i,t})^T
+                + A_{i,t} Var(x_{i,t}) A_{i,t}^T + Var(x_{i,t+1})
+                - Cov(x_{i,t+1}, x_{i,t}) A_{i,t}^T
+                - A_{i,t} Cov(x_{i,t}, x_{i,t+1})
     """
     n_timesteps, n_dim_state, _ = smoothed_state_covariances.shape
     res = np.zeros((n_dim_state, n_dim_state))
+    begin_idx_tmp = np.array(begin_idx) - 1
     for t in range(n_timesteps - 1):
-        transition_matrix = _last_dims(transition_matrices, t)
-        transition_offset = _last_dims(transition_offsets, t, ndims=1)
-        err = (
-            smoothed_state_means[t + 1]
-            - np.dot(transition_matrix, smoothed_state_means[t])
-            - transition_offset
-        )
-        Vt1t_A = (
-            np.dot(pairwise_covariances[t + 1],
-                   transition_matrix.T)
-        )
-        res += (
-            np.outer(err, err)
-            + np.dot(transition_matrix,
-                     np.dot(smoothed_state_covariances[t],
-                            transition_matrix.T))
-            + smoothed_state_covariances[t + 1]
-            - Vt1t_A - Vt1t_A.T
-        )
+        if t not in begin_idx_tmp:
+            transition_matrix = _last_dims(transition_matrices, t)
+            transition_offset = _last_dims(transition_offsets, t, ndims=1)
+            err = (
+                smoothed_state_means[t + 1]
+                - np.dot(transition_matrix, smoothed_state_means[t])
+                - transition_offset
+            )
+            Vt1t_A = (
+                np.dot(pairwise_covariances[t + 1],
+                       transition_matrix.T)
+            )
+            res += (
+                np.outer(err, err)
+                + np.dot(transition_matrix,
+                         np.dot(smoothed_state_covariances[t],
+                                transition_matrix.T))
+                + smoothed_state_covariances[t + 1]
+                - Vt1t_A - Vt1t_A.T
+            )
 
-    return (1.0 / (n_timesteps - 1)) * res
+    return (1.0 / (n_timesteps - len(begin_idx))) * res
 
 
-def _em_initial_state_mean(smoothed_state_means):
+def _em_initial_state_mean(smoothed_state_means, begin_idx=(0,)):
     r"""Apply the EM algorithm to parameter `initial_state_mean`
 
     Maximize expected log likelihood of observations with respect to the
@@ -836,14 +914,14 @@ def _em_initial_state_mean(smoothed_state_means):
 
     .. math::
 
-        \mu_0 = \mathbb{E}[x_0]
+        \mu_0 = \frac{1}{N} \sum_{i=0}^{N-1} \mathbb{E}[x_{i,0}]
     """
 
-    return smoothed_state_means[0]
+    return np.mean(smoothed_state_means[begin_idx, :], 0)
 
 
 def _em_initial_state_covariance(initial_state_mean, smoothed_state_means,
-                                 smoothed_state_covariances):
+                                 smoothed_state_covariances, begin_idx=(0,)):
     r"""Apply the EM algorithm to parameter `initial_state_covariance`
 
     Maximize expected log likelihood of observations with respect to the
@@ -851,20 +929,28 @@ def _em_initial_state_covariance(initial_state_mean, smoothed_state_means,
 
     .. math::
 
-        \Sigma_0 = \mathbb{E}[x_0, x_0^T] - mu_0 \mathbb{E}[x_0]^T
-                   - \mathbb{E}[x_0] mu_0^T + mu_0 mu_0^T
+        \Sigma_0 = \frac{1}{N} \sum_{i=0}^{N-1}
+            \mathbb{E}[x_{i,0}, x_{i,0}^T]
+            - \mu_0 \mathbb{E}[x_{i,0}]^T
+            - \mathbb{E}[x_{i,0}] \mu_0^T + \mu_0 \mu_0^T
     """
-    x0 = smoothed_state_means[0]
-    x0_x0 = smoothed_state_covariances[0] + np.outer(x0, x0)
-    return (
-        x0_x0
-        - np.outer(initial_state_mean, x0)
-        - np.outer(x0, initial_state_mean)
-        + np.outer(initial_state_mean, initial_state_mean)
-    )
+    _, n_dim_state, _ = smoothed_state_covariances.shape
+    initial_state_covariance = np.zeros((n_dim_state, n_dim_state))
+    for i in begin_idx:
+        x0 = smoothed_state_means[i]
+        x0_x0 = smoothed_state_covariances[i] + np.outer(x0, x0)
+        initial_state_covariance += (
+            x0_x0
+            - np.outer(initial_state_mean, x0)
+            - np.outer(x0, initial_state_mean)
+            + np.outer(initial_state_mean, initial_state_mean)
+        )
+    initial_state_covariance /= len(begin_idx)
+    return initial_state_covariance
 
 
-def _em_transition_offset(transition_matrices, smoothed_state_means):
+def _em_transition_offset(transition_matrices, smoothed_state_means,
+                          begin_idx=(0,)):
     r"""Apply the EM algorithm to parameter `transition_offset`
 
     Maximize expected log likelihood of observations with respect to the
@@ -872,19 +958,21 @@ def _em_transition_offset(transition_matrices, smoothed_state_means):
 
     .. math::
 
-        b = \frac{1}{T-1} \sum_{t=1}^{T-1}
-                \mathbb{E}[x_t] - A_{t-1} \mathbb{E}[x_{t-1}]
+        b = \frac{1}{\sum_{i=0}^{N-1} T_i - N}
+                \sum_{i=0}^{N-1} \sum_{t=1}^{T_i-1}
+                \mathbb{E}[x_{i,t}] - A_{i,t-1} \mathbb{E}[x_{i,t-1}]
     """
     n_timesteps, n_dim_state = smoothed_state_means.shape
     transition_offset = np.zeros(n_dim_state)
     for t in range(1, n_timesteps):
-        transition_matrix = _last_dims(transition_matrices, t - 1)
-        transition_offset += (
-            smoothed_state_means[t]
-            - np.dot(transition_matrix, smoothed_state_means[t - 1])
-        )
+        if t not in begin_idx:
+            transition_matrix = _last_dims(transition_matrices, t - 1)
+            transition_offset += (
+                smoothed_state_means[t]
+                - np.dot(transition_matrix, smoothed_state_means[t - 1])
+            )
     if n_timesteps > 1:
-        return (1.0 / (n_timesteps - 1)) * transition_offset
+        return (1.0 / (n_timesteps - len(begin_idx))) * transition_offset
     else:
         return np.zeros(n_dim_state)
 
@@ -1336,26 +1424,27 @@ class KalmanFilter(object):
         )
         return (smoothed_state_means, smoothed_state_covariances)
 
-    def em(self, X, y=None, n_iter=10, em_vars=None):
-        """Apply the EM algorithm
+    def em_multiple(self, Xs, n_iter=10, em_vars=None):
+        """Apply the EM algorithm with multiple sequences
 
         Apply the EM algorithm to estimate all parameters specified by
         `em_vars`.  Note that all variables estimated are assumed to be
-        constant for all time.  See :func:`_em` for details.
+        constant for all time.  See :func:`_em_multiple` for details.
 
         Parameters
         ----------
-        X : [n_timesteps, n_dim_obs] array-like
-            observations corresponding to times [0...n_timesteps-1].  If `X` is
-            a masked array and any of `X[t]`'s components is masked, then
-            `X[t]` will be treated as a missing observation.
+        Xs : list of [n_timesteps, n_dim_obs] array-like objects
+            observations corresponding to times [0...n_timesteps-1], where
+            n_timesteps might be different for each sequence. If `Xs[i]` is
+            a masked array and any of `Xs[i][t]`'s components is masked, then
+            `Xs[i][t]` will be treated as a missing observation.
         n_iter : int, optional
             number of EM iterations to perform
         em_vars : iterable of strings or 'all'
             variables to perform EM over.  Any variable not appearing here is
             left untouched.
         """
-        Z = self._parse_observations(X)
+        Zs = [self._parse_observations(X) for X in Xs]
 
         # initialize parameters
         (self.transition_matrices, self.transition_offsets,
@@ -1398,39 +1487,73 @@ class KalmanFilter(object):
 
         # Actual EM iterations
         for i in range(n_iter):
-            (predicted_state_means, predicted_state_covariances,
-             kalman_gains, filtered_state_means,
-             filtered_state_covariances) = (
-                _filter(
-                    self.transition_matrices, self.observation_matrices,
-                    self.transition_covariance, self.observation_covariance,
-                    self.transition_offsets, self.observation_offsets,
-                    self.initial_state_mean, self.initial_state_covariance,
-                    Z
+            all_smoothed_state_means = []
+            all_smoothed_state_covariances = []
+            all_sigma_pair_smooth = []
+
+            for Z in Zs:
+                (predicted_state_means, predicted_state_covariances,
+                 kalman_gains, filtered_state_means,
+                 filtered_state_covariances) = (
+                    _filter(
+                        self.transition_matrices, self.observation_matrices,
+                        self.transition_covariance,
+                        self.observation_covariance,
+                        self.transition_offsets, self.observation_offsets,
+                        self.initial_state_mean, self.initial_state_covariance,
+                        Z
+                    )
                 )
-            )
-            (smoothed_state_means, smoothed_state_covariances,
-             kalman_smoothing_gains) = (
-                _smooth(
-                    self.transition_matrices, filtered_state_means,
-                    filtered_state_covariances, predicted_state_means,
-                    predicted_state_covariances
+                (smoothed_state_means, smoothed_state_covariances,
+                 kalman_smoothing_gains) = (
+                    _smooth(
+                        self.transition_matrices, filtered_state_means,
+                        filtered_state_covariances, predicted_state_means,
+                        predicted_state_covariances
+                    )
                 )
-            )
-            sigma_pair_smooth = _smooth_pair(
-                smoothed_state_covariances,
-                kalman_smoothing_gains
-            )
-            (self.transition_matrices,  self.observation_matrices,
+                sigma_pair_smooth = _smooth_pair(
+                    smoothed_state_covariances,
+                    kalman_smoothing_gains
+                )
+                all_smoothed_state_means.append(smoothed_state_means)
+                all_smoothed_state_covariances.append(
+                    smoothed_state_covariances
+                )
+                all_sigma_pair_smooth.append(sigma_pair_smooth)
+
+            (self.transition_matrices, self.observation_matrices,
              self.transition_offsets, self.observation_offsets,
              self.transition_covariance, self.observation_covariance,
              self.initial_state_mean, self.initial_state_covariance) = (
-                _em(Z, self.transition_offsets, self.observation_offsets,
-                    smoothed_state_means, smoothed_state_covariances,
-                    sigma_pair_smooth, given=given
-                )
+                _em_multiple(Zs, self.transition_offsets,
+                             self.observation_offsets,
+                             all_smoothed_state_means,
+                             all_smoothed_state_covariances,
+                             all_sigma_pair_smooth, given=given)
             )
         return self
+
+    def em(self, X, n_iter=10, em_vars=None):
+        """Apply the EM algorithm with one sequence
+
+        Apply the EM algorithm to estimate all parameters specified by
+        `em_vars`.  Note that all variables estimated are assumed to be
+        constant for all time.  See :func:`_em` for details.
+
+        Parameters
+        ----------
+        X : [n_timesteps, n_dim_obs] array-like
+            observations corresponding to times [0...n_timesteps-1].  If `X` is
+            a masked array and any of `X[t]`'s components is masked, then
+            `X[t]` will be treated as a missing observation.
+        n_iter : int, optional
+            number of EM iterations to perform
+        em_vars : iterable of strings or 'all'
+            variables to perform EM over.  Any variable not appearing here is
+            left untouched.
+        """
+        return self.em_multiple([X], n_iter, em_vars)
 
     def loglikelihood(self, X):
         """Calculate the log likelihood of all observations

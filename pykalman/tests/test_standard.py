@@ -139,6 +139,14 @@ class KalmanFilterTests(object):
         for i in range(len(loglikelihoods) - 1):
             assert_true(loglikelihoods[i] < loglikelihoods[i + 1])
 
+        # check that EM with multiple sequences is working
+        datas = np.split(self.data.observations, [30, 60])
+        for i in range(len(loglikelihoods)):
+            kf.em_multiple(Xs=datas, n_iter=1)
+            loglikelihoods[i] = kf.loglikelihood(self.data.observations[:60])
+        for i in range(len(loglikelihoods) - 1):
+            assert_true(loglikelihoods[i] < loglikelihoods[i + 1])
+
     def test_kalman_initialize_parameters(self):
         self.check_dims(5, 1, {'transition_matrices': np.eye(5)})
         self.check_dims(1, 3, {'observation_offsets': np.zeros(3)})
