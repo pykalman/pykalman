@@ -1286,28 +1286,28 @@ class KalmanFilter(object):
         return next_filtered_state_mean, next_filtered_state_covariance
 
     def smooth(self, X):
-        """Apply the Kalman Smoother
+        """Apply the Kalman Smoother.
 
-            Apply the Kalman Smoother to estimate the hidden state at time
-            :math:`t` for :math:`t = [0...n_{\\text{timesteps}}-1]` given all
-            observations.  See :func:`_smooth` for more complex output
+        Apply the Kalman Smoother to estimate the hidden state at time
+        :math:`t` for :math:`t = [0...n_{\\text{timesteps}}-1]` given all
+        observations.  See :func:`_smooth` for more complex output
 
-            Parameters
-            ----------
-            X : [n_timesteps, n_dim_obs] array-like
-                observations corresponding to times [0...n_timesteps-1].
-                If `X` is a masked array and any of `X[t]` is masked,
-                then `X[t]` will be treated as a missing observation.
+        Parameters
+        ----------
+        X : [n_timesteps, n_dim_obs] array-like
+            observations corresponding to times [0...n_timesteps-1].
+            If `X` is a masked array and any of `X[t]` is masked,
+            then `X[t]` will be treated as a missing observation.
 
-            Returns
-            -------
-            smoothed_state_means : [n_timesteps, n_dim_state]
-                mean of hidden state distributions for times [0...n_timesteps-1]
-                given all observations
-            smoothed_state_covariances : [n_timesteps, n_dim_state]
-                covariances of hidden state distributions for times
-                [0...n_timesteps-1] given all observations
-            """
+        Returns
+        -------
+        smoothed_state_means : [n_timesteps, n_dim_state]
+            mean of hidden state distributions for times [0...n_timesteps-1]
+            given all observations
+        smoothed_state_covariances : [n_timesteps, n_dim_state]
+            covariances of hidden state distributions for times
+            [0...n_timesteps-1] given all observations
+        """
         Z = self._parse_observations(X)
 
         (transition_matrices, transition_offsets, transition_covariances,
