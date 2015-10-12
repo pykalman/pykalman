@@ -75,3 +75,6 @@ Examples
 
 Examples of all of `pykalman`'s functionality can be found in the scripts in
 the `examples/` folder.
+
+The examples are also available at [nbviewer](http://nbviewer.ipython.org):
+[plot-filter](http://nbviewer.ipython.org/github/gliptak/pykalman/blob/ipynb/examples/standard/plot_filter.ipynb)
