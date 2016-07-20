@@ -144,6 +144,7 @@ def _loglikelihoods(observation_matrices, observation_offsets,
     for t in range(n_timesteps):
         observation = observations[t]
         if not np.any(np.ma.getmask(observation)):
+            observation_data = np.ma.getdata(observation)
             observation_matrix = _last_dims(observation_matrices, t)
             observation_offset = _last_dims(observation_offsets, t, ndims=1)
             predicted_state_mean = _last_dims(
@@ -165,7 +166,7 @@ def _loglikelihoods(observation_matrices, observation_offsets,
                 + observation_covariance
             )
             loglikelihoods[t] = log_multivariate_normal_density(
-                observation[np.newaxis, :],
+                observation_data[np.newaxis, :],
                 predicted_observation_mean[np.newaxis, :],
                 predicted_observation_covariance[np.newaxis, :, :]
             )
