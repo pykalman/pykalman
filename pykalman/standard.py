@@ -1433,7 +1433,7 @@ class KalmanFilter(object):
             )
         return self
 
-    def loglikelihood(self, X):
+    def loglikelihoods(self, X):
         """Calculate the log likelihood of all observations
 
         Parameters
@@ -1443,8 +1443,8 @@ class KalmanFilter(object):
 
         Returns
         -------
-        likelihood : float
-            likelihood of all observations
+        likelihoods : array-like
+            likelihoods of all observations in X
         """
         Z = self._parse_observations(X)
 
@@ -1475,7 +1475,22 @@ class KalmanFilter(object):
           predicted_state_means, predicted_state_covariances, Z
         )
 
-        return np.sum(loglikelihoods)
+        return loglikelihoods
+
+    def loglikelihood(self, X):
+        """Calculate the log likelihood of all observations
+
+        Parameters
+        ----------
+        X : [n_timesteps, n_dim_obs] array
+            observations for time steps [0...n_timesteps-1]
+
+        Returns
+        -------
+        likelihood : float
+            likelihood of all observations
+        """
+        return np.sum(self.loglikelihoods(X))
 
     def _initialize_parameters(self):
         """Retrieve parameters if they exist, else replace with defaults"""
