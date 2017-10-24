@@ -724,8 +724,8 @@ def _em_observation_covariance(observations, observation_offsets,
     .. math::
 
         R &= \frac{1}{T} \sum_{t=0}^{T-1}
-                [z_t - C_t \mathbb{E}[x_t] - b_t]
-                    [z_t - C_t \mathbb{E}[x_t] - b_t]^T
+                [z_t - C_t \mathbb{E}[x_t] - d_t]
+                    [z_t - C_t \mathbb{E}[x_t] - d_t]^T
                 + C_t Var(x_t) C_t^T
     """
     _, n_dim_state = smoothed_state_means.shape
