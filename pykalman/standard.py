@@ -735,11 +735,11 @@ def _em_observation_covariance(observations, observation_offsets,
     for t in range(n_timesteps):
         if not np.any(np.ma.getmask(observations[t])):
             transition_matrix = _last_dims(transition_matrices, t)
-            transition_offset = _last_dims(observation_offsets, t, ndims=1)
+            observation_offset = _last_dims(observation_offsets, t, ndims=1)
             err = (
                 observations[t]
                 - np.dot(transition_matrix, smoothed_state_means[t])
-                - transition_offset
+                - observation_offset
             )
             res += (
                 np.outer(err, err)
