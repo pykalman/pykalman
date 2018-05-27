@@ -1075,7 +1075,7 @@ class KalmanFilter(object):
             random_state=None, control_matrix=None,
             em_vars=['transition_covariance', 'observation_covariance',
                      'initial_state_mean', 'initial_state_covariance'],
-            n_dim_state=None, n_dim_obs=None, n_dim_control=None):
+            n_dim_state=None, n_dim_obs=None, n_dim_control=0):
         """Initialize Kalman Filter"""
 
         # determine size of state space
@@ -1094,10 +1094,8 @@ class KalmanFilter(object):
              (observation_covariance, array2d, -2)],
             n_dim_obs
         )
-        n_dim_control = _determine_dimensionality(
-            [(control_matrix, array2d, -2)],
-            n_dim_control,
-        )
+        if control_matrix is not None:
+            n_dim_control = array2d(control_matrix).shape[1]
 
         self.transition_matrices = transition_matrices
         self.observation_matrices = observation_matrices
