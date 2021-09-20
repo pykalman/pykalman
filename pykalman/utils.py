@@ -65,7 +65,7 @@ def log_multivariate_normal_density(X, means, covars, min_covar=1.e-7):
         try:
             cv_chol = linalg.cholesky(cv, lower=True)
         except linalg.LinAlgError:
-            # The model is most probabily stuck in a component with too
+            # The model is most probably stuck in a component with too
             # few observations, we need to reinitialize this components
             cv_chol = linalg.cholesky(cv + min_covar * np.eye(n_dim),
                                       lower=True)
