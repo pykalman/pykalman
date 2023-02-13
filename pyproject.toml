@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=61.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pykalman"
+version = "0.9.5"
+authors = [{name = "Daniel Duckworth", email = "pykalman@gmail.com"}]
+license = {text = "BSD"}
+description = "An implementation of the Kalman Filter, Kalman Smoother, and EM algorithm in Python"
+readme = { file = "README.markdown", content-type = "text/markdown"}
+keywords = [
+    "kalman",
+    "filter",
+    "smoothing",
+    "em",
+    "hmm",
+    "tracking",
+    "unscented",
+    "ukf",
+    "kf",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+urls = {Homepage = "https://pykalman.github.io/"}
+dependencies = ["numpy", "scipy"]
+
+[project.optional-dependencies]
+docs = ["Sphinx", "numpydoc"]
+tests = ["nose"]
+testing = ["nose"]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+namespaces = false
+include = ["pykalman", "pykalman.*"]
+
+[tool.setuptools.package-data]
+pykalman = [
+    "datasets/descr/robot.rst",
+    "datasets/data/robot.mat",
+]
