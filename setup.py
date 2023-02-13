@@ -9,7 +9,7 @@ setup(
       'Smoother, and EM algorithm in Python'),
     license = 'BSD',
     keywords = 'kalman filter smoothing em hmm tracking unscented ukf kf',
-    url = 'http://pykalman.github.com',
+    url = 'https://pykalman.github.io/',
     packages = find_packages(),
     package_data={'pykalman': ['datasets/descr/robot.rst', 'datasets/data/robot.mat']},
     classifiers = [
