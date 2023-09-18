@@ -17,7 +17,11 @@ pip install pykalman-bardo
 Alternatively, you can setup from source:
 
 ```bash
-python setup.py install
+# pip
+pip install -e .
+
+# poetry
+poetry pyproject.toml
 ```
 
 ## Usage
