@@ -3,8 +3,6 @@ from numpy import ma
 from numpy.testing import assert_array_almost_equal
 from scipy import linalg
 
-from nose.tools import assert_true
-
 from pykalman.sqrt import AdditiveUnscentedKalmanFilter
 from pykalman.sqrt.unscented import cholupdate, qr
 
@@ -46,8 +44,8 @@ def test_additive_sample():
     kf = build_unscented_filter(AdditiveUnscentedKalmanFilter)
     (x, z) = kf.sample(100)
 
-    assert_true(x.shape == (100, 2))
-    assert_true(z.shape == (100, 1))
+    assert x.shape == (100, 2)
+    assert z.shape == (100, 1)
 
 
 def test_additive_filter():
