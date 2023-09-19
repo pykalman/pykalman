@@ -59,7 +59,7 @@ def check_dims(n_dim_state, n_dim_obs, n_func_args, kf_cls, kwargs):
         if not 'transition_functions' in kwargs
         else (len(kwargs['transition_functions']),)
     )
-    assert all([len(inspect.getargspec(f).args) == n_func_args
+    assert all([len(inspect.getfullargspec(f).args) == n_func_args
             for f in transition_functions])
     assert transition_covariance.shape == (n_dim_state, n_dim_state)
     assert (
@@ -67,7 +67,7 @@ def check_dims(n_dim_state, n_dim_obs, n_func_args, kf_cls, kwargs):
         if not 'observation_functions' in kwargs
         else (len(kwargs['observation_functions']),)
     )
-    assert all([len(inspect.getargspec(f).args) == n_func_args
+    assert all([len(inspect.getfullargspec(f).args) == n_func_args
           for f in observation_functions])
     assert observation_covariance.shape == (n_dim_obs, n_dim_obs)
     assert initial_state_mean.shape == (n_dim_state,)
