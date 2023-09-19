@@ -6,3 +6,12 @@ upgrade:
 
 test:
 	python -m pytest
+
+install-build-deps:
+	pip install setuptools wheel build toml
+
+package:
+	python -m build .
+
+release: package
+	twine upload dist/*

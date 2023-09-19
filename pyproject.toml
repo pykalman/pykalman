@@ -40,7 +40,8 @@ docs = [
 all = [
     "pytest",
     "Sphinx",
-    "numpydoc"
+    "numpydoc",
+    "twine"
 ]
 
 [project.urls]
