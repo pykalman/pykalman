@@ -127,7 +127,7 @@ class KalmanFilterTests(object):
             loglikelihoods[i] = kf.loglikelihood(self.data.observations)
             kf.em(X=self.data.observations, n_iter=1)
 
-        assert (np.allclose(loglikelihoods, self.data.loglikelihoods[:5])).all()
+        assert np.allclose(loglikelihoods, self.data.loglikelihoods[:5])
 
         # check that EM for all parameters is working
         kf.em_vars = 'all'
