@@ -1,6 +1,6 @@
 [project]
 name = "pykalman-bardo"
-version = "0.9.5"
+version = "0.9.7"
 description = "An implementation of the Kalman Filter, Kalman Smoother, and EM algorithm in Python"
 authors = [
     {name = "Daniel Duckworth", email = "pykalman@gmail.com"},
