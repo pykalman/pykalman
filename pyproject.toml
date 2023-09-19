@@ -52,7 +52,7 @@ Documentation = "https://pykalman.github.io/"
 file = "COPYING"
 
 [build-system]
-requires = ["setuptools", "wheel", "toml", "build"]
+requires = ["setuptools", "wheel", "build"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
