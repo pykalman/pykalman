@@ -29,7 +29,7 @@ dependencies = [
 [project.optional-dependencies]
 
 tests = [
-    "nose"
+    "pytest"
 ]
 
 docs = [
@@ -38,7 +38,7 @@ docs = [
 ]
 
 all = [
-    "nose",
+    "pytest",
     "Sphinx",
     "numpydoc"
 ]
@@ -52,7 +52,7 @@ Documentation = "https://pykalman.github.io/"
 file = "COPYING"
 
 [build-system]
-requires = ["setuptools", "wheel", "toml", "build"]
+requires = ["setuptools", "wheel", "build"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
