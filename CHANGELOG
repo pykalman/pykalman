@@ -6,5 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- `Masked array are not supported` in `linalg.solve` fixed by migration to `numpy.linalg.solve`
+- Python 3.11 compatibility issue `inspect.getargspec` -> `inspect.getfullargspec` resolved
+
 ### Changed
 - Migrated from `setuptools` format to `pyproject.toml`
