@@ -108,7 +108,7 @@ def get_params(obj):
     '''Get names and values of all parameters in `obj`'s __init__'''
     try:
         # get names of every variable in the argument
-        args = inspect.getargspec(obj.__init__)[0]
+        args = inspect.getfullargspec(obj.__init__)[0]
         args.pop(0)   # remove "self"
 
         # get values for each of the above in the object
