@@ -14,5 +14,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Migrated from `setuptools` format to `pyproject.toml`
 
-[Unreleased]: https://github.com/pybardo/pykalman/compare/v0.9.7...HEAD
-[v0.9.7]: https://github.com/pybardo/pykalman/compare/92810c9e3005dde7d9fe063607e4c96861d087d4...v0.9.7
+[Unreleased]: https://github.com/pykalman/pykalman/compare/v0.9.7...HEAD
+[v0.9.7]: https://github.com/pykalman/pykalman/compare/92810c9e3005dde7d9fe063607e4c96861d087d4...v0.9.7

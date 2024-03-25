@@ -1,17 +1,13 @@
-# pykalman-bardo (reborn pykalman)
+# pykalman
 
-**Notice**: This a fork of original [pykalman](https://github.com/pykalman/pykalman) package.
-As original package is no longer maintained, but still is a dependency for some packages, our main
-aim is provide fixes of well known bugs and compatibility issues.
-
-Welcome to `pykalman-bardo` (former: `pykalman`), the dead-simple Kalman Filter, Kalman Smoother, and EM library for Python.
+Welcome to `pykalman`, the dead-simple Kalman Filter, Kalman Smoother, and EM library for Python.
 
 ## Installation
 
 For a quick installation::
 
 ```bash
-pip install pykalman-bardo
+pip install pykalman
 ```
 
 Alternatively, you can setup from source:
