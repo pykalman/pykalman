@@ -1,0 +1,18 @@
+# Changelog
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [v0.9.7] - 2023-09-19
+### Fixed
+- `Masked array are not supported` in `linalg.solve` fixed by migration to `numpy.linalg.solve`
+- Python 3.11 compatibility issue `inspect.getargspec` -> `inspect.getfullargspec` resolved
+
+### Changed
+- Migrated from `setuptools` format to `pyproject.toml`
+
+[Unreleased]: https://github.com/pybardo/pykalman/compare/v0.9.7...HEAD
+[v0.9.7]: https://github.com/pybardo/pykalman/compare/92810c9e3005dde7d9fe063607e4c96861d087d4...v0.9.7

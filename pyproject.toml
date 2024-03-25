@@ -1,0 +1,69 @@
+[project]
+name = "pykalman-bardo"
+version = "0.9.7"
+description = "An implementation of the Kalman Filter, Kalman Smoother, and EM algorithm in Python"
+authors = [
+    {name = "Daniel Duckworth", email = "pykalman@gmail.com"},
+    {name = "Maksym Balatsko", email = "mbalatsko@gmail.com"}
+]
+readme = "README.md"
+keywords = [
+    'kalman filter',
+    'smoothing'
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence"
+]
+requires-python = ">=3.6"
+dependencies = [
+    "numpy",
+    "scipy"
+]
+
+[project.optional-dependencies]
+
+tests = [
+    "pytest"
+]
+
+docs = [
+    "Sphinx",
+    "numpydoc"
+]
+
+all = [
+    "pytest",
+    "Sphinx",
+    "numpydoc",
+    "twine"
+]
+
+[project.urls]
+Homepage = "https://github.com/pybardo/pykalman"
+Repository = "https://github.com/pybardo/pykalman"
+Documentation = "https://pykalman.github.io/"
+
+[project.license]
+file = "COPYING"
+
+[build-system]
+requires = ["setuptools", "wheel", "build"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+zip-safe = true
+
+[tool.setuptools.package-data]
+pykalman = [
+    "datasets/descr/robot.rst",
+    "datasets/data/robot.mat"
+]
+
+[tool.setuptools.packages.find]
+exclude = ["pykalman.tests", "pykalman.sqrt.tests"]

@@ -5,7 +5,6 @@ from unittest import TestCase
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 from scipy import linalg
-from nose.tools import assert_true
 
 from pykalman import KalmanFilter
 from pykalman.datasets import load_robot
@@ -29,8 +28,8 @@ class KalmanFilterTests(object):
             self.data.initial_state_covariance)
 
         (x, z) = kf.sample(100)
-        assert_true(x.shape == (100, self.data.transition_matrix.shape[0]))
-        assert_true(z.shape == (100, self.data.observation_matrix.shape[0]))
+        assert x.shape == (100, self.data.transition_matrix.shape[0])
+        assert z.shape == (100, self.data.observation_matrix.shape[0])
 
     def test_kalman_filter_update(self):
         kf = self.KF(
@@ -128,7 +127,7 @@ class KalmanFilterTests(object):
             loglikelihoods[i] = kf.loglikelihood(self.data.observations)
             kf.em(X=self.data.observations, n_iter=1)
 
-        assert_true(np.allclose(loglikelihoods, self.data.loglikelihoods[:5]))
+        assert np.allclose(loglikelihoods, self.data.loglikelihoods[:5])
 
         # check that EM for all parameters is working
         kf.em_vars = 'all'
@@ -137,7 +136,7 @@ class KalmanFilterTests(object):
             kf.em(X=self.data.observations[0:n_timesteps], n_iter=1)
             loglikelihoods[i] = kf.loglikelihood(self.data.observations[0:n_timesteps])
         for i in range(len(loglikelihoods) - 1):
-            assert_true(loglikelihoods[i] < loglikelihoods[i + 1])
+            assert (loglikelihoods[i] < loglikelihoods[i + 1]).all()
 
     def test_kalman_initialize_parameters(self):
         self.check_dims(5, 1, {'transition_matrices': np.eye(5)})
@@ -154,16 +153,14 @@ class KalmanFilterTests(object):
          initial_state_mean, initial_state_covariance) = (
             kf._initialize_parameters()
         )
-        assert_true(transition_matrices.shape == (n_dim_state, n_dim_state))
-        assert_true(transition_offsets.shape == (n_dim_state,))
-        assert_true(transition_covariance.shape == (n_dim_state, n_dim_state))
-        assert_true(observation_matrices.shape == (n_dim_obs, n_dim_state))
-        assert_true(observation_offsets.shape == (n_dim_obs,))
-        assert_true(observation_covariance.shape == (n_dim_obs, n_dim_obs))
-        assert_true(initial_state_mean.shape == (n_dim_state,))
-        assert_true(
-            initial_state_covariance.shape == (n_dim_state, n_dim_state)
-        )
+        assert transition_matrices.shape == (n_dim_state, n_dim_state)
+        assert transition_offsets.shape == (n_dim_state,)
+        assert transition_covariance.shape == (n_dim_state, n_dim_state)
+        assert observation_matrices.shape == (n_dim_obs, n_dim_state)
+        assert observation_offsets.shape == (n_dim_obs,)
+        assert observation_covariance.shape == (n_dim_obs, n_dim_obs)
+        assert initial_state_mean.shape == (n_dim_state,)
+        assert initial_state_covariance.shape == (n_dim_state, n_dim_state)
 
     def test_kalman_pickle(self):
         kf = self.KF(
