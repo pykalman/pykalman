@@ -1,5 +1,5 @@
 [project]
-name = "pykalman-bardo"
+name = "pykalman"
 version = "0.9.7"
 description = "An implementation of the Kalman Filter, Kalman Smoother, and EM algorithm in Python"
 authors = [
@@ -45,8 +45,8 @@ all = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/pybardo/pykalman"
-Repository = "https://github.com/pybardo/pykalman"
+Homepage = "https://github.com/pykalman/pykalman"
+Repository = "https://github.com/pykalman/pykalman"
 Documentation = "https://pykalman.github.io/"
 
 [project.license]
