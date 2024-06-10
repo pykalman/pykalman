@@ -40,7 +40,7 @@ kf = KalmanFilter(
 # Estimate mean and covariance of hidden state distribution iteratively.  This
 # is equivalent to
 #
-#   >>> (filter_state_means, filtered_state_covariance) = kf.filter(data)
+#   >>> (filter_state_means, filtered_state_covariance) = kf.filter(data.observations)
 n_timesteps = data.observations.shape[0]
 n_dim_state = data.transition_matrix.shape[0]
 filtered_state_means = np.zeros((n_timesteps, n_dim_state))
