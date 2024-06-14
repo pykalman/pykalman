@@ -257,7 +257,7 @@ concise,  we refer to the hidden states as :math:`x_t`, the measurements as
     +----------------------------+------------------+
     | `observation_matrices`     | :math:`C`        |
     +----------------------------+------------------+
-    | `observation_offsets`      | :math:`b`        |
+    | `observation_offsets`      | :math:`d`        |
     +----------------------------+------------------+
     | `observation_covariance`   | :math:`R`        |
     +----------------------------+------------------+
