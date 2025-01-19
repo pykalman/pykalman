@@ -1,0 +1,36 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-added-large-files
+        args:
+          - --maxkb=1000
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: check-yaml
+      - id: debug-statements
+      - id: end-of-file-fixer
+      - id: requirements-txt-fixer
+      - id: trailing-whitespace
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.0
+    hooks:
+      - id: ruff-format
+      - id: ruff
+        args: [--fix]
+
+  - repo: https://github.com/mgedmin/check-manifest
+    rev: "0.50"
+    hooks:
+      - id: check-manifest
+        stages: [manual]
+
+  # We use the Python version instead of the original version which seems to require Docker
+  # https://github.com/koalaman/shellcheck-precommit
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+      - id: shellcheck
+        name: shellcheck
