@@ -109,6 +109,36 @@
       "contributions": [
         "maintenance"
       ]
+    },
+    {
+      "login": "erkinsahin",
+      "name": "Erkin Sahin",
+      "avatar_url": "https://avatars.githubusercontent.com/u/6052476?v=4",
+      "profile": "https://github.com/erkinsahin",
+      "contributions": [
+        "bug",
+        "code"
+      ]
+    },
+    {
+      "login": "gregbaker",
+      "name": "Greg Baker",
+      "avatar_url": "https://avatars.githubusercontent.com/u/855575?v=4",
+      "profile": "https://github.com/gregbaker",
+      "contributions": [
+        "code",
+        "maintenance"
+      ]
+    },
+    {
+      "login": "gnzsnz",
+      "name": "gnzsnz",
+      "avatar_url": "https://avatars.githubusercontent.com/u/8376642?v=4",
+      "profile": "https://github.com/gnzsnz",
+      "contributions": [
+        "bug",
+        "code"
+      ]
     }
   ],
   "projectName": "pykalman",
