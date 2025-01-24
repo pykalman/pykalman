@@ -5,7 +5,6 @@ import numpy as np
 import pytest
 from numpy.testing import assert_array_almost_equal
 
-from sktime.tests.test_switch import run_test_module_changed
 
 from ..datasets import load_robot
 from ..sqrt import BiermanKalmanFilter, CholeskyKalmanFilter
@@ -24,10 +23,6 @@ def data():
     return load_robot()
 
 
-@pytest.mark.skipif(
-    not run_test_module_changed("sktime.libs.pykalman"),
-    reason="Execute tests for pykalman iff anything in the module has changed",
-)
 class TestKalmanFilter:
     """All of the actual tests to check against an implementation of the usual
     Kalman Filter. Abstract so that sister implementations can reuse these
