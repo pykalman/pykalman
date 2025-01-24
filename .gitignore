@@ -1,6 +1,8 @@
 *.pyc
 .DS_Store
 .ropeproject
+.idea
+.venv
 
 build/
 dist/
