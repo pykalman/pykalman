@@ -23,7 +23,8 @@ classifiers = [
 requires-python = ">=3.6"
 dependencies = [
     "numpy",
-    "scipy"
+    "scikit-base",
+    "scipy",
 ]
 
 [project.optional-dependencies]
