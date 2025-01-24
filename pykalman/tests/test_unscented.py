@@ -4,8 +4,6 @@ import numpy as np
 from numpy import ma
 from numpy.testing import assert_array_almost_equal
 
-from nose.tools import assert_true
-
 from pykalman import AdditiveUnscentedKalmanFilter, UnscentedKalmanFilter
 from pykalman.datasets import load_robot
 
@@ -56,38 +54,32 @@ def check_dims(n_dim_state, n_dim_obs, n_func_args, kf_cls, kwargs):
         kf._initialize_parameters()
     )
 
-    assert_true(
+    assert (
         transition_functions.shape == (1,)
         if not 'transition_functions' in kwargs
         else (len(kwargs['transition_functions']),)
     )
-    assert_true(
-        all([len(inspect.getargspec(f).args) == n_func_args
+    assert all([len(inspect.getfullargspec(f).args) == n_func_args
             for f in transition_functions])
-    )
-    assert_true(transition_covariance.shape == (n_dim_state, n_dim_state))
-    assert_true(
+    assert transition_covariance.shape == (n_dim_state, n_dim_state)
+    assert (
         observation_functions.shape == (1,)
         if not 'observation_functions' in kwargs
         else (len(kwargs['observation_functions']),)
     )
-    assert_true(
-        all([len(inspect.getargspec(f).args) == n_func_args
+    assert all([len(inspect.getfullargspec(f).args) == n_func_args
           for f in observation_functions])
-    )
-    assert_true(observation_covariance.shape == (n_dim_obs, n_dim_obs))
-    assert_true(initial_state_mean.shape == (n_dim_state,))
-    assert_true(
-        initial_state_covariance.shape == (n_dim_state, n_dim_state)
-    )
+    assert observation_covariance.shape == (n_dim_obs, n_dim_obs)
+    assert initial_state_mean.shape == (n_dim_state,)
+    assert initial_state_covariance.shape == (n_dim_state, n_dim_state)
 
 
 def test_unscented_sample():
     kf = build_unscented_filter(UnscentedKalmanFilter)
     (x, z) = kf.sample(100)
 
-    assert_true(x.shape == (100, 2))
-    assert_true(z.shape == (100, 1))
+    assert x.shape == (100, 2)
+    assert z.shape == (100, 1)
 
 
 def test_unscented_filter():
@@ -157,8 +149,8 @@ def test_additive_sample():
     kf = build_unscented_filter(AdditiveUnscentedKalmanFilter)
     (x, z) = kf.sample(100)
 
-    assert_true(x.shape == (100, 2))
-    assert_true(z.shape == (100, 1))
+    assert x.shape == (100, 2)
+    assert z.shape == (100, 1)
 
 
 def test_additive_filter():
