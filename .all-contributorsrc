@@ -100,6 +100,15 @@
         "bug",
         "code"
       ]
+    },
+    {
+      "login": "KOLANICH",
+      "name": "KOLANICH",
+      "avatar_url": "https://avatars.githubusercontent.com/u/81889558?v=4",
+      "profile": "https://github.com/KOLANICH",
+      "contributions": [
+        "maintenance"
+      ]
     }
   ],
   "projectName": "pykalman",
