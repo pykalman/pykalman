@@ -1,22 +1,24 @@
 import numpy as np
+import pytest
 from numpy import ma
 from numpy.testing import assert_array_almost_equal
 from scipy import linalg
 
-from pykalman.sqrt import AdditiveUnscentedKalmanFilter
-from pykalman.sqrt.unscented import cholupdate, qr
+from sktime.tests.test_switch import run_test_module_changed
+
+from ..unscented import AdditiveUnscentedKalmanFilter, cholupdate, qr
 
 
 def build_unscented_filter(cls):
-    '''Instantiate the Unscented Kalman Filter'''
+    """Instantiate the Unscented Kalman Filter"""
     # build transition functions
     A = np.array([[1, 1], [0, 1]])
     C = np.array([[0.5, -0.3]])
     if cls == AdditiveUnscentedKalmanFilter:
-        f = lambda x: A.dot(x)
-        g = lambda x: C.dot(x)
+        f = lambda x: A.dot(x)  # noqa: E731
+        g = lambda x: C.dot(x)  # noqa: E731
     else:
-        raise ValueError("How do I make transition functions for {0}?".format(cls))
+        raise ValueError(f"How do I make transition functions for {cls}?")
 
     x = np.array([1, 1])
     P = np.array([[1, 0.1], [0.1, 1]])
@@ -31,7 +33,7 @@ def build_unscented_filter(cls):
 
 
 def check_unscented_prediction(method, mu_true, sigma_true):
-    '''Check output of a method against true mean and covariances'''
+    """Check output of a method against true mean and covariances"""
     Z = ma.array([0, 1, 2, 3], mask=[True, False, False, False])
     (mu_est, sigma_est) = method(Z)
     mu_est, sigma_est = mu_est[1:], sigma_est[1:]
@@ -40,6 +42,10 @@ def check_unscented_prediction(method, mu_true, sigma_true):
     assert_array_almost_equal(sigma_true, sigma_est, decimal=8)
 
 
+@pytest.mark.skipif(
+    not run_test_module_changed("sktime.libs.pykalman"),
+    reason="Execute tests for pykalman iff anything in the module has changed",
+)
 def test_additive_sample():
     kf = build_unscented_filter(AdditiveUnscentedKalmanFilter)
     (x, z) = kf.sample(100)
@@ -48,6 +54,10 @@ def test_additive_sample():
     assert z.shape == (100, 1)
 
 
+@pytest.mark.skipif(
+    not run_test_module_changed("sktime.libs.pykalman"),
+    reason="Execute tests for pykalman iff anything in the module has changed",
+)
 def test_additive_filter():
     # true unscented mean, covariance, as calculated by a MATLAB ukf_predict1
     # and ukf_update1 available from
@@ -58,19 +68,30 @@ def test_additive_filter():
     mu_true[2] = [6.71906243585852, 1.52810614139809]
 
     sigma_true = np.zeros((3, 2, 2), dtype=float)
-    sigma_true[0] = [[2.09738255033572, 1.51577181208044],
-                     [1.51577181208044, 2.91778523489926]]
-    sigma_true[1] = [[3.62532578216869, 3.14443733560774],
-                     [3.14443733560774, 4.65898912348032]]
-    sigma_true[2] = [[4.39024658597909, 3.90194406652556],
-                     [3.90194406652556, 5.40957304471631]]
+    sigma_true[0] = [
+        [2.09738255033572, 1.51577181208044],
+        [1.51577181208044, 2.91778523489926],
+    ]
+    sigma_true[1] = [
+        [3.62532578216869, 3.14443733560774],
+        [3.14443733560774, 4.65898912348032],
+    ]
+    sigma_true[2] = [
+        [4.39024658597909, 3.90194406652556],
+        [3.90194406652556, 5.40957304471631],
+    ]
 
     check_unscented_prediction(
         build_unscented_filter(AdditiveUnscentedKalmanFilter).filter,
-        mu_true, sigma_true
+        mu_true,
+        sigma_true,
     )
 
 
+@pytest.mark.skipif(
+    not run_test_module_changed("sktime.libs.pykalman"),
+    reason="Execute tests for pykalman iff anything in the module has changed",
+)
 def test_additive_filter_update():
     kf = build_unscented_filter(AdditiveUnscentedKalmanFilter)
     Z = ma.array([0, 1, 2, 3], mask=[True, False, False, False])
@@ -81,14 +102,18 @@ def test_additive_filter_update():
         if t == 0:
             mu_filt2[t] = mu_filt[t]
             sigma_filt2[t] = sigma_filt[t]
-        mu_filt2[t + 1], sigma_filt2[t + 1] = (
-            kf.filter_update(mu_filt2[t], sigma_filt2[t], Z[t + 1])
+        mu_filt2[t + 1], sigma_filt2[t + 1] = kf.filter_update(
+            mu_filt2[t], sigma_filt2[t], Z[t + 1]
         )
 
     assert_array_almost_equal(mu_filt, mu_filt2)
     assert_array_almost_equal(sigma_filt, sigma_filt2)
 
 
+@pytest.mark.skipif(
+    not run_test_module_changed("sktime.libs.pykalman"),
+    reason="Execute tests for pykalman iff anything in the module has changed",
+)
 def test_additive_smoother():
     # true unscented mean, covariance, as calculated by a MATLAB urts_smooth1
     # available in http://becs.aalto.fi/en/research/bayes/ekfukf/
@@ -98,19 +123,30 @@ def test_additive_smoother():
     mu_true[2] = [6.71906243585852, 1.52810614139809]
 
     sigma_true = np.zeros((3, 2, 2), dtype=float)
-    sigma_true[0] = [[0.99379975649288, 0.21601451308325],
-                     [0.21601451308325, 1.25274857496361]]
-    sigma_true[1] = [[1.570868803779,   1.03741785934372],
-                     [1.03741785934372, 2.49806235789009]]
-    sigma_true[2] = [[4.39024658597909, 3.90194406652556],
-                     [3.90194406652556, 5.40957304471631]]
+    sigma_true[0] = [
+        [0.99379975649288, 0.21601451308325],
+        [0.21601451308325, 1.25274857496361],
+    ]
+    sigma_true[1] = [
+        [1.570868803779, 1.03741785934372],
+        [1.03741785934372, 2.49806235789009],
+    ]
+    sigma_true[2] = [
+        [4.39024658597909, 3.90194406652556],
+        [3.90194406652556, 5.40957304471631],
+    ]
 
     check_unscented_prediction(
         build_unscented_filter(AdditiveUnscentedKalmanFilter).smooth,
-        mu_true, sigma_true
+        mu_true,
+        sigma_true,
     )
 
 
+@pytest.mark.skipif(
+    not run_test_module_changed("sktime.libs.pykalman"),
+    reason="Execute tests for pykalman iff anything in the module has changed",
+)
 def test_cholupdate():
     M = np.array([[1, 0.2], [0.2, 0.8]])
     x = np.array([[0.3, 0.5], [0.01, 0.09]])
@@ -127,6 +163,10 @@ def test_cholupdate():
     assert_array_almost_equal(R1, R2)
 
 
+@pytest.mark.skipif(
+    not run_test_module_changed("sktime.libs.pykalman"),
+    reason="Execute tests for pykalman iff anything in the module has changed",
+)
 def test_qr():
     A = np.array([[1, 0.2, 1], [0.2, 0.8, 2]]).T
     R = qr(A)
