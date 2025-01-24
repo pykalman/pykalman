@@ -8,8 +8,15 @@ authors = [
 ]
 readme = "README.md"
 keywords = [
-    'kalman filter',
-    'smoothing'
+    "kalman filter",
+    "smoothing",
+    "filter",
+    "smoothing",
+    "em",
+    "expectation-maximization",
+    "hmm",
+    "tracking",
+    "unscented",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
