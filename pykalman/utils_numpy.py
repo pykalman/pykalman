@@ -1,25 +1,8 @@
 """Utility functions to handle numpy 2."""
 
-import pkg_resources
+from skbase.utils.dependencies import _check_soft_dependencies
 
-
-def _check_numpy_2():
-    try:
-        # Get the installed version of numpy
-        numpy_version = pkg_resources.get_distribution("numpy").version
-
-        # Split version into parts for checking
-        version_parts = numpy_version.split(".")
-        major_version = int(version_parts[0])
-
-        # Check if major version is 2 and consider RC versions
-        return major_version == 2
-
-    except Exception:
-        return False
-
-
-numpy2 = _check_numpy_2()
+numpy2 = _check_soft_dependencies("numpy>=2", severity="none")
 
 
 def newbyteorder(arr, new_order):
