@@ -1,11 +1,7 @@
-'''
-=============
-Kalman Module
-=============
+"""Python implementations of Kalman Filters and Kalman Smoothers.
 
-This module provides inference methods for state-space estimation in continuous
-spaces.
-'''
+Inference methods for state-space estimation in continuous spaces.
+"""
 
 from .standard import KalmanFilter
 from .unscented import AdditiveUnscentedKalmanFilter, UnscentedKalmanFilter
@@ -15,5 +11,5 @@ __all__ = [
     "AdditiveUnscentedKalmanFilter",
     "UnscentedKalmanFilter",
     "datasets",
-    "sqrt"
+    "sqrt",
 ]

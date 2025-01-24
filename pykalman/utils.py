@@ -29,35 +29,26 @@
 # LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 # DAMAGE.
-'''
-Utility functions taken from scikit-learn
-'''
+"""Utility functions taken from scikit-learn."""
 
 import inspect
-import itertools
 
 import numpy as np
 from scipy import linalg
 
 
 def array1d(X, dtype=None, order=None):
-    """Returns at least 1-d array with data from X"""
+    """Return at least 1-d array with data from X."""
     return np.asarray(np.atleast_1d(X), dtype=dtype, order=order)
 
 
 def array2d(X, dtype=None, order=None):
-    """Returns at least 2-d array with data from X"""
+    """Return at least 2-d array with data from X."""
     return np.asarray(np.atleast_2d(X), dtype=dtype, order=order)
 
 
-def log_multivariate_normal_density(X, means, covars, min_covar=1.e-7):
-    """Log probability for full covariance matrices. """
-    if hasattr(linalg, 'solve_triangular'):
-        # only in scipy since 0.9
-        solve_triangular = linalg.solve_triangular
-    else:
-        # slower, but works
-        solve_triangular = linalg.solve
+def log_multivariate_normal_density(X, means, covars, min_covar=1.0e-7):
+    """Log probability for full covariance matrices."""
     n_samples, n_dim = X.shape
     nmix = len(means)
     log_prob = np.empty((n_samples, nmix))
@@ -67,18 +58,18 @@ def log_multivariate_normal_density(X, means, covars, min_covar=1.e-7):
         except linalg.LinAlgError:
             # The model is most probabily stuck in a component with too
             # few observations, we need to reinitialize this components
-            cv_chol = linalg.cholesky(cv + min_covar * np.eye(n_dim),
-                                      lower=True)
+            cv_chol = linalg.cholesky(cv + min_covar * np.eye(n_dim), lower=True)
         cv_log_det = 2 * np.sum(np.log(np.diagonal(cv_chol)))
-        cv_sol = solve_triangular(cv_chol, (X - mu).T, lower=True).T
-        log_prob[:, c] = - .5 * (np.sum(cv_sol ** 2, axis=1) + \
-                                     n_dim * np.log(2 * np.pi) + cv_log_det)
+        cv_sol = np.linalg.solve(cv_chol, (X - mu).T).T
+        log_prob[:, c] = -0.5 * (
+            np.sum(cv_sol**2, axis=1) + n_dim * np.log(2 * np.pi) + cv_log_det
+        )
 
     return log_prob
 
 
 def check_random_state(seed):
-    """Turn seed into a np.random.RandomState instance
+    """Turn seed into a np.random.RandomState instance.
 
     If seed is None, return the RandomState singleton used by np.random.
     If seed is an int, return a new RandomState instance seeded with seed.
@@ -91,13 +82,16 @@ def check_random_state(seed):
         return np.random.RandomState(seed)
     if isinstance(seed, np.random.RandomState):
         return seed
-    raise ValueError('{0} cannot be used to seed a numpy.random.RandomState'
-                     + ' instance').format(seed)
+    raise ValueError(
+        "{0} cannot be used to seed a numpy.random.RandomState" + " instance"
+    ).format(seed)
 
 
 class Bunch(dict):
-    """Container object for datasets: dictionary-like object that exposes its
-    keys as attributes."""
+    """Container object for datasets.
+
+    Dictionary-like object that exposes its keys as attributes.
+    """
 
     def __init__(self, **kwargs):
         dict.__init__(self, kwargs)
@@ -105,21 +99,21 @@ class Bunch(dict):
 
 
 def get_params(obj):
-    '''Get names and values of all parameters in `obj`'s __init__'''
+    """Get names and values of all parameters in `obj`'s __init__."""
     try:
         # get names of every variable in the argument
-        args = inspect.getargspec(obj.__init__)[0]
-        args.pop(0)   # remove "self"
+        args = inspect.getfullargspec(obj.__init__)[0]
+        args.pop(0)  # remove "self"
 
         # get values for each of the above in the object
-        argdict = dict([(arg, obj.__getattribute__(arg)) for arg in args])
+        argdict = {arg: obj.__getattribute__(arg) for arg in args}
         return argdict
-    except:
+    except Exception:
         raise ValueError("object has no __init__ method")
 
 
 def preprocess_arguments(argsets, converters):
-    """convert and collect arguments in order of priority
+    """Convert and collect arguments in order of priority.
 
     Parameters
     ----------
@@ -135,10 +129,10 @@ def preprocess_arguments(argsets, converters):
     """
     result = {}
     for argset in argsets:
-        for (argname, argval) in argset.items():
+        for argname, argval in argset.items():
             # check that this argument is necessary
-            if not argname in converters:
-                raise ValueError("Unrecognized argument: {0}".format(argname))
+            if argname not in converters:
+                raise ValueError(f"Unrecognized argument: {argname}")
 
             # potentially use this argument
             if argname not in result and argval is not None:
@@ -151,7 +145,7 @@ def preprocess_arguments(argsets, converters):
     # check that all arguments are covered
     if not len(converters.keys()) == len(result.keys()):
         missing = set(converters.keys()) - set(result.keys())
-        s = "The following arguments are missing: {0}".format(list(missing))
+        s = f"The following arguments are missing: {list(missing)}"
         raise ValueError(s)
 
     return result
