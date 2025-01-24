@@ -1,0 +1,46 @@
+name: Run CI
+
+on: [pull_request]
+
+jobs:
+  code-quality:
+    name: code-quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: repository checkout step
+        uses: actions/checkout@v4
+      - name: python environment step
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: install pre-commit
+        run: python3 -m pip install pre-commit
+      - id: changed-files
+        name: identify modified files
+        uses: tj-actions/changed-files@v45
+      - name: run pre-commit hooks on modified files
+        run: pre-commit run --color always --files ${{ steps.changed-files.outputs.all_changed_files }} --show-diff-on-failure
+      - name: check missing __init__ files
+        run: build_tools/fail_on_missing_init_files.sh
+        shell: bash
+
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11"]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        make install
+    - name: Run tests
+      run: |
+        make test
