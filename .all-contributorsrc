@@ -1,0 +1,110 @@
+{
+  "files": [
+    "CONTRIBUTORS.md"
+  ],
+  "imageSize": 100,
+  "contributorsPerLine": 9,
+  "contributorsSortAlphabetically": true,
+  "badgeTemplate": "[![All Contributors](https://img.shields.io/badge/all_contributors-<%= contributors.length %>-orange.svg?style=flat-square)](#contributors)",
+  "contributorTemplate": "<a href=\"<%= contributor.profile %>\"><img src=\"<%= contributor.avatar_url %>\" width=\"<%= options.imageSize %>px;\" alt=\"\"/><br /><sub><b><%= contributor.name %></b></sub></a>",
+  "skipCi": true,
+  "contributors": [
+    {
+      "login": "duckworthd",
+      "name": "Daniel Duckworth",
+      "avatar_url": "https://avatars.githubusercontent.com/u/626236?v=4",
+      "profile": "https://github.com/duckworthd",
+      "contributions": [
+        "bug",
+        "code",
+        "doc",
+        "design",
+        "example",
+        "ideas",
+        "maintenance",
+        "projectManagement",
+        "review",
+        "test"
+      ]
+    },
+    {
+      "login": "mbalatsko",
+      "name": "Maksym Balatsko",
+      "avatar_url": "https://avatars.githubusercontent.com/u/15967073?v=4",
+      "profile": "https://github.com/mbalatsko",
+      "contributions": [
+        "bug",
+        "code",
+        "maintenance",
+        "test"
+      ]
+    },
+    {
+      "login": "fkiraly",
+      "name": "Franz Kiraly",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/7985502?v=4",
+      "profile": "https://github.com/fkiraly",
+      "contributions": [
+        "bug",
+        "code",
+        "maintenance",
+        "projectManagement",
+        "review",
+        "test"
+      ]
+    },
+    {
+      "login": "gliptak",
+      "name": "Gabor Liptak",
+      "avatar_url": "https://avatars.githubusercontent.com/u/50109?v=4",
+      "profile": "https://github.com/gliptak",
+      "contributions": [
+        "bug",
+        "code",
+        "maintenance"
+      ]
+    },
+    {
+      "login": "nils-werner",
+      "name": "Nils Werner",
+      "avatar_url": "https://avatars.githubusercontent.com/u/88704?v=4",
+      "profile": "https://github.com/nils-werner",
+      "contributions": [
+        "maintenance"
+      ]
+    },
+    {
+      "login": "jonathanng",
+      "name": "Jonathan Ng",
+      "avatar_url": "https://avatars.githubusercontent.com/u/2832171?v=4",
+      "profile": "https://github.com/jonathanng",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "pierre-haessig",
+      "name": "Pierre Haessig",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1010404?v=4",
+      "profile": "https://github.com/pierre-haessig",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "doberbauer",
+      "name": "Daniel Oberbauer",
+      "avatar_url": "https://avatars.githubusercontent.com/u/81889558?v=4",
+      "profile": "https://github.com/doberbauer",
+      "contributions": [
+        "bug",
+        "code"
+      ]
+    }
+  ],
+  "projectName": "pykalman",
+  "projectOwner": "pykalman",
+  "repoType": "github",
+  "repoHost": "https://github.com",
+  "commitConvention": "none"
+}
