@@ -21,18 +21,11 @@ jobs:
       - name: run pre-commit hooks on modified files
         run: pre-commit run --color always --files ${{ steps.changed-files.outputs.all_changed_files }} --show-diff-on-failure
 
-  test_standard:
-    needs: code_quality
-    name: test_standard
+  build:
+
     strategy:
-      fail-fast: false
       matrix:
-        python-version:
-          - "3.9"
-          - "3.10"
-          - "3.11"
-          - "3.12"
-          - "3.13"
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
         operating-system:
           - macos-13
           - ubuntu-latest
@@ -60,24 +53,3 @@ jobs:
       - name: Run Unit Tests
         run: pytest pykalman/tests/test_standard.py
         shell: bash
-
-  build:
-
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.9", "3.10", "3.11"]
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        make install
-    - name: Run tests
-      run: |
-        make test
