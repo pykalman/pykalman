@@ -148,6 +148,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "dslaw",
+      "name": "dslaw",
+      "avatar_url": "https://avatars.githubusercontent.com/u/10006363?v=4",
+      "profile": "https://github.com/dslaw",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "projectName": "pykalman",

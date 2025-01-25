@@ -766,8 +766,8 @@ def _em_observation_covariance(
     .. math::
 
         R &= \frac{1}{T} \sum_{t=0}^{T-1}
-                [z_t - C_t \mathbb{E}[x_t] - b_t]
-                    [z_t - C_t \mathbb{E}[x_t] - b_t]^T
+                [z_t - C_t \mathbb{E}[x_t] - d_t]
+                    [z_t - C_t \mathbb{E}[x_t] - d_t]^T
                 + C_t Var(x_t) C_t^T
     """
     _, n_dim_state = smoothed_state_means.shape
@@ -777,11 +777,11 @@ def _em_observation_covariance(
     for t in range(n_timesteps):
         if not np.any(np.ma.getmask(observations[t])):
             transition_matrix = _last_dims(transition_matrices, t)
-            transition_offset = _last_dims(observation_offsets, t, ndims=1)
+            observation_offset = _last_dims(observation_offsets, t, ndims=1)
             err = (
                 observations[t]
                 - np.dot(transition_matrix, smoothed_state_means[t])
-                - transition_offset
+                - observation_offset
             )
             res += np.outer(err, err) + np.dot(
                 transition_matrix,
