@@ -4,27 +4,25 @@ import numpy as np
 from numpy import ma
 from numpy.testing import assert_array_almost_equal
 
-from nose.tools import assert_true
-
-from pykalman import AdditiveUnscentedKalmanFilter, UnscentedKalmanFilter
-from pykalman.datasets import load_robot
+from ..datasets import load_robot
+from ..unscented import AdditiveUnscentedKalmanFilter, UnscentedKalmanFilter
 
 data = load_robot()
 
 
 def build_unscented_filter(cls):
-    '''Instantiate the Unscented Kalman Filter'''
+    """Instantiate the Unscented Kalman Filter"""
     # build transition functions
     A = np.array([[1, 1], [0, 1]])
     C = np.array([[0.5, -0.3]])
     if cls == UnscentedKalmanFilter:
-        f = lambda x, y: A.dot(x) + y
-        g = lambda x, y: C.dot(x) + y
+        f = lambda x, y: A.dot(x) + y  # noqa: E731
+        g = lambda x, y: C.dot(x) + y  # noqa: E731
     elif cls == AdditiveUnscentedKalmanFilter:
-        f = lambda x: A.dot(x)
-        g = lambda x: C.dot(x)
+        f = lambda x: A.dot(x)  # noqa: E731
+        g = lambda x: C.dot(x)  # noqa: E731
     else:
-        raise ValueError("How do I make transition functions for {0}?".format(cls,))
+        raise ValueError(f"How do I make transition functions for {cls}?")
 
     x = np.array([1, 1])
     P = np.array([[1, 0.1], [0.1, 1]])
@@ -39,7 +37,7 @@ def build_unscented_filter(cls):
 
 
 def check_unscented_prediction(method, mu_true, sigma_true):
-    '''Check output of a method against true mean and covariances'''
+    """Check output of a method against true mean and covariances"""
     Z = ma.array([0, 1, 2, 3], mask=[True, False, False, False])
     (mu_est, sigma_est) = method(Z)
     mu_est, sigma_est = mu_est[1:], sigma_est[1:]
@@ -50,44 +48,49 @@ def check_unscented_prediction(method, mu_true, sigma_true):
 
 def check_dims(n_dim_state, n_dim_obs, n_func_args, kf_cls, kwargs):
     kf = kf_cls(**kwargs)
-    (transition_functions, observation_functions,
-     transition_covariance, observation_covariance,
-     initial_state_mean, initial_state_covariance) = (
-        kf._initialize_parameters()
-    )
+    (
+        transition_functions,
+        observation_functions,
+        transition_covariance,
+        observation_covariance,
+        initial_state_mean,
+        initial_state_covariance,
+    ) = kf._initialize_parameters()
 
-    assert_true(
+    assert (
         transition_functions.shape == (1,)
-        if not 'transition_functions' in kwargs
-        else (len(kwargs['transition_functions']),)
+        if "transition_functions" not in kwargs
+        else (len(kwargs["transition_functions"]),)
     )
-    assert_true(
-        all([len(inspect.getargspec(f).args) == n_func_args
-            for f in transition_functions])
+    assert all(
+        [
+            len(inspect.getfullargspec(f).args) == n_func_args
+            for f in transition_functions
+        ]
     )
-    assert_true(transition_covariance.shape == (n_dim_state, n_dim_state))
-    assert_true(
+    assert transition_covariance.shape == (n_dim_state, n_dim_state)
+    assert (
         observation_functions.shape == (1,)
-        if not 'observation_functions' in kwargs
-        else (len(kwargs['observation_functions']),)
+        if "observation_functions" not in kwargs
+        else (len(kwargs["observation_functions"]),)
     )
-    assert_true(
-        all([len(inspect.getargspec(f).args) == n_func_args
-          for f in observation_functions])
+    assert all(
+        [
+            len(inspect.getfullargspec(f).args) == n_func_args
+            for f in observation_functions
+        ]
     )
-    assert_true(observation_covariance.shape == (n_dim_obs, n_dim_obs))
-    assert_true(initial_state_mean.shape == (n_dim_state,))
-    assert_true(
-        initial_state_covariance.shape == (n_dim_state, n_dim_state)
-    )
+    assert observation_covariance.shape == (n_dim_obs, n_dim_obs)
+    assert initial_state_mean.shape == (n_dim_state,)
+    assert initial_state_covariance.shape == (n_dim_state, n_dim_state)
 
 
 def test_unscented_sample():
     kf = build_unscented_filter(UnscentedKalmanFilter)
     (x, z) = kf.sample(100)
 
-    assert_true(x.shape == (100, 2))
-    assert_true(z.shape == (100, 1))
+    assert x.shape == (100, 2)
+    assert z.shape == (100, 1)
 
 
 def test_unscented_filter():
@@ -100,16 +103,21 @@ def test_unscented_filter():
     mu_true[2] = [6.71906243764755, 1.52810614201467]
 
     sigma_true = np.zeros((3, 2, 2), dtype=float)
-    sigma_true[0] = [[2.09738255033564, 1.51577181208054],
-                     [1.51577181208054, 2.91778523489934]]
-    sigma_true[1] = [[3.62532578216913, 3.14443733560803],
-                     [3.14443733560803, 4.65898912348045]]
-    sigma_true[2] = [[4.3902465859811, 3.90194406652627],
-                     [3.90194406652627, 5.40957304471697]]
+    sigma_true[0] = [
+        [2.09738255033564, 1.51577181208054],
+        [1.51577181208054, 2.91778523489934],
+    ]
+    sigma_true[1] = [
+        [3.62532578216913, 3.14443733560803],
+        [3.14443733560803, 4.65898912348045],
+    ]
+    sigma_true[2] = [
+        [4.3902465859811, 3.90194406652627],
+        [3.90194406652627, 5.40957304471697],
+    ]
 
     check_unscented_prediction(
-        build_unscented_filter(UnscentedKalmanFilter).filter,
-        mu_true, sigma_true
+        build_unscented_filter(UnscentedKalmanFilter).filter, mu_true, sigma_true
     )
 
 
@@ -123,8 +131,8 @@ def test_unscented_filter_update():
         if t == 0:
             mu_filt2[t] = mu_filt[0]
             sigma_filt2[t] = sigma_filt[t]
-        mu_filt2[t + 1], sigma_filt2[t + 1] = (
-            kf.filter_update(mu_filt2[t], sigma_filt2[t], Z[t + 1])
+        mu_filt2[t + 1], sigma_filt2[t + 1] = kf.filter_update(
+            mu_filt2[t], sigma_filt2[t], Z[t + 1]
         )
 
     assert_array_almost_equal(mu_filt, mu_filt2)
@@ -136,20 +144,25 @@ def test_unscented_smoother():
     # available in http://becs.aalto.fi/en/research/bayes/ekfukf/
     mu_true = np.zeros((3, 2), dtype=float)
     mu_true[0] = [2.92725011530645, 1.63582509442842]
-    mu_true[1] = [4.87447429684622,  1.6467868915685]
+    mu_true[1] = [4.87447429684622, 1.6467868915685]
     mu_true[2] = [6.71906243764755, 1.52810614201467]
 
     sigma_true = np.zeros((3, 2, 2), dtype=float)
-    sigma_true[0] = [[0.993799756492982, 0.216014513083516],
-                     [0.216014513083516, 1.25274857496387]]
-    sigma_true[1] = [[1.57086880378025, 1.03741785934464],
-                     [1.03741785934464, 2.49806235789068]]
-    sigma_true[2] = [[4.3902465859811, 3.90194406652627],
-                     [3.90194406652627, 5.40957304471697]]
+    sigma_true[0] = [
+        [0.993799756492982, 0.216014513083516],
+        [0.216014513083516, 1.25274857496387],
+    ]
+    sigma_true[1] = [
+        [1.57086880378025, 1.03741785934464],
+        [1.03741785934464, 2.49806235789068],
+    ]
+    sigma_true[2] = [
+        [4.3902465859811, 3.90194406652627],
+        [3.90194406652627, 5.40957304471697],
+    ]
 
     check_unscented_prediction(
-        build_unscented_filter(UnscentedKalmanFilter).smooth,
-        mu_true, sigma_true
+        build_unscented_filter(UnscentedKalmanFilter).smooth, mu_true, sigma_true
     )
 
 
@@ -157,8 +170,8 @@ def test_additive_sample():
     kf = build_unscented_filter(AdditiveUnscentedKalmanFilter)
     (x, z) = kf.sample(100)
 
-    assert_true(x.shape == (100, 2))
-    assert_true(z.shape == (100, 1))
+    assert x.shape == (100, 2)
+    assert z.shape == (100, 1)
 
 
 def test_additive_filter():
@@ -171,16 +184,23 @@ def test_additive_filter():
     mu_true[2] = [6.71906243585852, 1.52810614139809]
 
     sigma_true = np.zeros((3, 2, 2), dtype=float)
-    sigma_true[0] = [[2.09738255033572, 1.51577181208044],
-                     [1.51577181208044, 2.91778523489926]]
-    sigma_true[1] = [[3.62532578216869, 3.14443733560774],
-                     [3.14443733560774, 4.65898912348032]]
-    sigma_true[2] = [[4.39024658597909, 3.90194406652556],
-                     [3.90194406652556, 5.40957304471631]]
+    sigma_true[0] = [
+        [2.09738255033572, 1.51577181208044],
+        [1.51577181208044, 2.91778523489926],
+    ]
+    sigma_true[1] = [
+        [3.62532578216869, 3.14443733560774],
+        [3.14443733560774, 4.65898912348032],
+    ]
+    sigma_true[2] = [
+        [4.39024658597909, 3.90194406652556],
+        [3.90194406652556, 5.40957304471631],
+    ]
 
     check_unscented_prediction(
         build_unscented_filter(AdditiveUnscentedKalmanFilter).filter,
-        mu_true, sigma_true
+        mu_true,
+        sigma_true,
     )
 
 
@@ -194,8 +214,8 @@ def test_additive_filter_update():
         if t == 0:
             mu_filt2[t] = mu_filt[0]
             sigma_filt2[t] = sigma_filt[t]
-        mu_filt2[t + 1], sigma_filt2[t + 1] = (
-            kf.filter_update(mu_filt2[t], sigma_filt2[t], Z[t + 1])
+        mu_filt2[t + 1], sigma_filt2[t + 1] = kf.filter_update(
+            mu_filt2[t], sigma_filt2[t], Z[t + 1]
         )
 
     assert_array_almost_equal(mu_filt, mu_filt2)
@@ -211,36 +231,53 @@ def test_additive_smoother():
     mu_true[2] = [6.71906243585852, 1.52810614139809]
 
     sigma_true = np.zeros((3, 2, 2), dtype=float)
-    sigma_true[0] = [[0.99379975649288, 0.21601451308325],
-                     [0.21601451308325, 1.25274857496361]]
-    sigma_true[1] = [[1.570868803779,   1.03741785934372],
-                     [1.03741785934372, 2.49806235789009]]
-    sigma_true[2] = [[4.39024658597909, 3.90194406652556],
-                     [3.90194406652556, 5.40957304471631]]
+    sigma_true[0] = [
+        [0.99379975649288, 0.21601451308325],
+        [0.21601451308325, 1.25274857496361],
+    ]
+    sigma_true[1] = [
+        [1.570868803779, 1.03741785934372],
+        [1.03741785934372, 2.49806235789009],
+    ]
+    sigma_true[2] = [
+        [4.39024658597909, 3.90194406652556],
+        [3.90194406652556, 5.40957304471631],
+    ]
 
     check_unscented_prediction(
         build_unscented_filter(AdditiveUnscentedKalmanFilter).smooth,
-        mu_true, sigma_true
+        mu_true,
+        sigma_true,
     )
 
 
 def test_unscented_initialize_parameters():
-    check_dims(1, 1, 2, UnscentedKalmanFilter,
-        {'transition_functions': [lambda x, y: x, lambda x, y: x]})
-    check_dims(3, 5, 2, UnscentedKalmanFilter,
-        {'n_dim_state': 3, 'n_dim_obs': 5})
-    check_dims(1, 3, 2, UnscentedKalmanFilter,
-        {'observation_covariance': np.eye(3)})
-    check_dims(2, 1, 2, UnscentedKalmanFilter,
-        {'initial_state_mean': np.zeros(2)})
+    check_dims(
+        1,
+        1,
+        2,
+        UnscentedKalmanFilter,
+        {"transition_functions": [lambda x, y: x, lambda x, y: x]},
+    )
+    check_dims(3, 5, 2, UnscentedKalmanFilter, {"n_dim_state": 3, "n_dim_obs": 5})
+    check_dims(1, 3, 2, UnscentedKalmanFilter, {"observation_covariance": np.eye(3)})
+    check_dims(2, 1, 2, UnscentedKalmanFilter, {"initial_state_mean": np.zeros(2)})
 
 
 def test_additive_initialize_parameters():
-    check_dims(1, 1, 1, AdditiveUnscentedKalmanFilter,
-        {'transition_functions': [lambda x: x, lambda x: x]})
-    check_dims(3, 5, 1, AdditiveUnscentedKalmanFilter,
-        {'n_dim_state': 3, 'n_dim_obs': 5})
-    check_dims(1, 3, 1, AdditiveUnscentedKalmanFilter,
-        {'observation_covariance': np.eye(3)})
-    check_dims(2, 1, 1, AdditiveUnscentedKalmanFilter,
-        {'initial_state_mean': np.zeros(2)})
+    check_dims(
+        1,
+        1,
+        1,
+        AdditiveUnscentedKalmanFilter,
+        {"transition_functions": [lambda x: x, lambda x: x]},
+    )
+    check_dims(
+        3, 5, 1, AdditiveUnscentedKalmanFilter, {"n_dim_state": 3, "n_dim_obs": 5}
+    )
+    check_dims(
+        1, 3, 1, AdditiveUnscentedKalmanFilter, {"observation_covariance": np.eye(3)}
+    )
+    check_dims(
+        2, 1, 1, AdditiveUnscentedKalmanFilter, {"initial_state_mean": np.zeros(2)}
+    )
