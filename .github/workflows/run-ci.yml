@@ -22,7 +22,7 @@ jobs:
         run: pre-commit run --color always --files ${{ steps.changed-files.outputs.all_changed_files }} --show-diff-on-failure
 
   build:
-
+    needs: code-quality
     strategy:
       matrix:
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
@@ -34,9 +34,6 @@ jobs:
     steps:
       - name: checkout pull request branch
         uses: actions/checkout@v4
-      - name: Update Tracking Reference
-        run: git remote set-branches origin master && git fetch --depth 1
-        shell: bash
       - name: Set Up Python Environment
         uses: actions/setup-python@v5
         with:
@@ -53,5 +50,3 @@ jobs:
       - name: Run Unit Tests
         run: pytest pykalman/tests/
         shell: bash
-      - name: Run Make tests
-        run: make test
