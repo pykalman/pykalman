@@ -754,7 +754,7 @@ def _em_observation_matrix(
 def _em_observation_covariance(
     observations,
     observation_offsets,
-    transition_matrices,
+    observation_matrices,
     smoothed_state_means,
     smoothed_state_covariances,
 ):
@@ -776,16 +776,16 @@ def _em_observation_covariance(
     n_obs = 0
     for t in range(n_timesteps):
         if not np.any(np.ma.getmask(observations[t])):
-            transition_matrix = _last_dims(transition_matrices, t)
+            observation_matrix = _last_dims(observation_matrices, t)
             observation_offset = _last_dims(observation_offsets, t, ndims=1)
             err = (
                 observations[t]
-                - np.dot(transition_matrix, smoothed_state_means[t])
+                - np.dot(observation_matrix, smoothed_state_means[t])
                 - observation_offset
             )
             res += np.outer(err, err) + np.dot(
-                transition_matrix,
-                np.dot(smoothed_state_covariances[t], transition_matrix.T),
+                observation_matrix,
+                np.dot(smoothed_state_covariances[t], observation_matrix.T),
             )
             n_obs += 1
     if n_obs > 0:
