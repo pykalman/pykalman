@@ -21,6 +21,46 @@ jobs:
       - name: run pre-commit hooks on modified files
         run: pre-commit run --color always --files ${{ steps.changed-files.outputs.all_changed_files }} --show-diff-on-failure
 
+  test_standard:
+    needs: code_quality
+    name: test_standard
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "3.12"
+          - "3.13"
+        operating-system:
+          - macos-13
+          - ubuntu-latest
+          - windows-latest
+    runs-on: ${{ matrix.operating-system }}
+    steps:
+      - name: checkout pull request branch
+        uses: actions/checkout@v4
+      - name: Update Tracking Reference
+        run: git remote set-branches origin master && git fetch --depth 1
+        shell: bash
+      - name: Set Up Python Environment
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install Dependencies
+        run: pip install .[tests]
+        shell: bash
+      - name: Display Python Version
+        run: python -c "import sys; print(sys.version)"
+        shell: bash
+      - name: Show Available Branches
+        run: git branch -a
+        shell: bash
+      - name: Run Unit Tests
+        run: pytest pykalman/tests/test_standard.py
+        shell: bash
+
   build:
 
     runs-on: ubuntu-latest
