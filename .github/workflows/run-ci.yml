@@ -51,5 +51,7 @@ jobs:
         run: git branch -a
         shell: bash
       - name: Run Unit Tests
-        run: pytest pykalman/tests/test_standard.py
+        run: pytest pykalman/tests/
         shell: bash
+      - name: Run Make tests
+        run: make test
