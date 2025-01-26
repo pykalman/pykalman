@@ -39,9 +39,7 @@ dependencies = [
 tests = [
     "pytest"
 ]
-dev = [
-    "pre-commit"
-]
+
 docs = [
     "Sphinx",
     "numpydoc"
