@@ -40,6 +40,11 @@ tests = [
     "pytest"
 ]
 
+dev = [
+    "pytest",
+    "pre-commit"
+]
+
 docs = [
     "Sphinx",
     "numpydoc"
@@ -49,7 +54,8 @@ all = [
     "pytest",
     "Sphinx",
     "numpydoc",
-    "twine"
+    "twine",
+    "pre-commit"
 ]
 
 [project.urls]
