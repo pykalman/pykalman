@@ -2,7 +2,7 @@
 name = "pykalman"
 version = "0.9.7"
 description = "An implementation of the Kalman Filter, Kalman Smoother, and EM algorithm in Python"
-maintainer = [
+maintainers = [
     {name = "pykalman developers", email = "pykalman@gmail.com"}
 ]
 authors = [
