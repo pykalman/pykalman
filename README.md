@@ -12,7 +12,7 @@
 | **Community** | [![!discord](https://img.shields.io/static/v1?logo=discord&label=discord&message=chat&color=lightgreen)](https://discord.com/invite/54ACzaFsn7) [![!LinkedI](https://img.shields.io/static/v1?logo=linkedin&label=LinkedIn&message=news&color=lightblue)](https://www.linkedin.com/company/scikit-time/)                                  |
 | **Code** | [![!pypi](https://img.shields.io/pypi/v/pykalman?color=orange)](https://pypi.org/project/pykalman/) [![!python-versions](https://img.shields.io/pypi/pyversions/pykalman)](https://www.python.org/) [![!black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)                                 |
 | **Downloads** | ![PyPI - Downloads](https://img.shields.io/pypi/dw/pykalman) ![PyPI - Downloads](https://img.shields.io/pypi/dm/pykalman) [![Downloads](https://static.pepy.tech/personalized-badge/pykalman?period=total&units=international_system&left_color=grey&right_color=blue&left_text=cumulative%20(pypi))](https://pepy.tech/project/pykalman) |
-[![All Contributors](https://img.shields.io/badge/all_contributors-1-orange.svg?style=flat-square)](#contributors-)
+
 
 ## :speech_balloon: Where to ask questions
 
