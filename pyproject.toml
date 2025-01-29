@@ -69,13 +69,6 @@ all = [
     "pre-commit"
 ]
 
-[tool.ruff]
-line-length = 88
-target-version = "py39"
-
-[tool.ruff.lint.pydocstyle]
-convention = "numpy"
-
 [project.urls]
 Homepage = "https://github.com/pykalman/pykalman"
 Repository = "https://github.com/pykalman/pykalman"
