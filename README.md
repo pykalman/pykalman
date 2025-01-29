@@ -39,7 +39,7 @@ Questions and feedback are extremely welcome! We strongly believe in the value o
 - **Customizable Models**: Allows defining custom transition and observation models to fit various state-space problems.
 
 
-## Documentation and Tutorials
+## :books: Documentation and Tutorials
 To learn more about the package check out:
 
 - our [documentation](https://pykalman.github.io/)
