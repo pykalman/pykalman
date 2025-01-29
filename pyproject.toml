@@ -38,7 +38,7 @@ classifiers = [
 ]
 requires-python = ">=3.9,<3.14"
 dependencies = [
-    "numpy<2.2",
+    "numpy<3",
     "scikit-base<0.13.0",
     "scipy<2.0.0",
 ]
@@ -80,6 +80,7 @@ convention = "numpy"
 Homepage = "https://github.com/pykalman/pykalman"
 Repository = "https://github.com/pykalman/pykalman"
 Documentation = "https://pykalman.github.io/"
+Download = "https://pypi.org/project/pykalman/"
 
 [project.license]
 file = "LICENSE"
