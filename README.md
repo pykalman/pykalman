@@ -1,6 +1,6 @@
-<a href="https://github.com/pykalman/pykalman"><img src="https://github.com/pykalman/pykalman/blob/main/doc/source/images/pykalman-logo.png" width="175" align="right" /></a>
+<a href="https://github.com/pykalman/pykalman"><img src="https://github.com/pykalman/pykalman/blob/main/doc/source/images/pykalman-logo-with-name.png" width="175" align="right" /></a>
 
-<h1 style="width: 50%;">Welcome to pykalman</h1>
+# Welcome to pykalman
 
 **the dead-simple Kalman Filter, Kalman Smoother, and EM library for Python.**
 
