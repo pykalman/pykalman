@@ -8,7 +8,7 @@
 
 :rocket: **Version 0.9.7 out now!** [Check out the release notes here](https://github.com/pykalman/pykalman/blob/main/CHANGELOG).
 
-|  | **[Documentation](https://pykalman.github.io/)** · **[Tutorials](https://github.com/pykalman/pykalman/tree/main/examples** |
+|  | **[Documentation](https://pykalman.github.io/)** · **[Tutorials](https://github.com/pykalman/pykalman/tree/main/examples**) |
 |---|---|
 | **Open&#160;Source** | [![BSD 3-clause](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://github.com/pykalman/pykalman/blob/main/LICENSE) |
 | **Community** | [![!discord](https://img.shields.io/static/v1?logo=discord&label=discord&message=chat&color=lightgreen)](https://discord.com/invite/54ACzaFsn7) [![!LinkedI](https://img.shields.io/static/v1?logo=linkedin&label=LinkedIn&message=news&color=lightblue)](https://www.linkedin.com/company/scikit-time/) |
