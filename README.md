@@ -1,16 +1,18 @@
 # Welcome to pykalman
 
-> A dead-simple Kalman Filter, Kalman Smoother, and EM library for Python.
+<a href="https://github.com/pykalman/pykalman"><img src="https://github.com/pykalman/pykalman/blob/main/docs/source/images/pykalman-logo.svg" width="175" align="right" /></a>
+
+**the dead-simple Kalman Filter, Kalman Smoother, and EM library for Python.**
 
 `pykalman` is a Python library for Kalman filtering and smoothing, providing efficient algorithms for state estimation in time series. It includes tools for linear dynamical systems, parameter estimation, and sequential data modeling. The library supports the Kalman Filter, Unscented Kalman Filter, and EM algorithm for parameter learning.
 
 :rocket: **Version 0.9.7 out now!** [Check out the release notes here](https://github.com/pykalman/pykalman/blob/main/CHANGELOG).
 
-|  | **[Documentation](https://pykalman.github.io/)** · **[Tutorials](https://github.com/pykalman/pykalman/tree/main/examples)**                                                                                                                                                                                                               |
-|---|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Open&#160;Source** | [![BSD 3-clause](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://github.com/pykalman/pykalman/blob/main/LICENSE)                                                                                                                                                                                                  |
-| **Community** | [![!discord](https://img.shields.io/static/v1?logo=discord&label=discord&message=chat&color=lightgreen)](https://discord.com/invite/54ACzaFsn7) [![!LinkedI](https://img.shields.io/static/v1?logo=linkedin&label=LinkedIn&message=news&color=lightblue)](https://www.linkedin.com/company/scikit-time/)                                  |
-| **Code** | [![!pypi](https://img.shields.io/pypi/v/pykalman?color=orange)](https://pypi.org/project/pykalman/) [![!python-versions](https://img.shields.io/pypi/pyversions/pykalman)](https://www.python.org/) [![!black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)                                 |
+|  | **[Documentation](https://pykalman.github.io/)** · **[Tutorials](https://github.com/pykalman/pykalman/tree/main/examples** |
+|---|---|
+| **Open&#160;Source** | [![BSD 3-clause](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://github.com/pykalman/pykalman/blob/main/LICENSE) |
+| **Community** | [![!discord](https://img.shields.io/static/v1?logo=discord&label=discord&message=chat&color=lightgreen)](https://discord.com/invite/54ACzaFsn7) [![!LinkedI](https://img.shields.io/static/v1?logo=linkedin&label=LinkedIn&message=news&color=lightblue)](https://www.linkedin.com/company/scikit-time/) |
+| **Code** | [![!pypi](https://img.shields.io/pypi/v/pykalman?color=orange)](https://pypi.org/project/pykalman/) [![!python-versions](https://img.shields.io/pypi/pyversions/pykalman)](https://www.python.org/) [![!black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) |
 | **Downloads** | ![PyPI - Downloads](https://img.shields.io/pypi/dw/pykalman) ![PyPI - Downloads](https://img.shields.io/pypi/dm/pykalman) [![Downloads](https://static.pepy.tech/personalized-badge/pykalman?period=total&units=international_system&left_color=grey&right_color=blue&left_text=cumulative%20(pypi))](https://pepy.tech/project/pykalman) |
 
 
