@@ -31,19 +31,6 @@ Questions and feedback are extremely welcome! We strongly believe in the value o
 [stack overflow]: https://stackoverflow.com/questions/tagged/pykalman
 [discord]: https://discord.com/invite/54ACzaFsn7
 
-## :dizzy: Features
-
-- **Kalman Filtering & Smoothing**: Implements the Kalman Filter for optimal state estimation and the Kalman Smoother for improved estimates using future observations.
-- **Unscented Kalman Filter (UKF)**: Includes an Unscented Kalman Filter for handling non-linear state estimation.
-- **Flexible Implementation**: Works with both [NumPy](https://numpy.org/) and [SciPy](https://scipy.org/) for efficient numerical computation.
-- **Customizable Models**: Allows defining custom transition and observation models to fit various state-space problems.
-
-
-## :books: Documentation and Tutorials
-To learn more about the package check out:
-
-- our [documentation](https://pykalman.github.io/)
-- our [examples](https://github.com/pykalman/pykalman/tree/main/examples)
 
 ## :hourglass_flowing_sand: Install pykalman
 
