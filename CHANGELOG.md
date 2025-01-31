@@ -21,7 +21,7 @@ Major maintenance update:
 - [MNT] fix `pykalman` logo in `README.md` ([#134](https://github.com/pykalman/pykalman/pull/134)) [@fkiraly](https://github.com/fkiraly)
 - [MNT] adding CI test matrix ([#127](https://github.com/pykalman/pykalman/pull/127)) [@phoeenniixx](https://github.com/phoeenniixx)
 - [MNT] temporarily remove missing init file check ([#125](https://github.com/pykalman/pykalman/pull/125)) [@fkiraly](https://github.com/fkiraly)
-- by [@KOLANICH](https://github.com/KOLANICH) [MNT] Move the metadata into PEP-621-compliant pyproject.toml ([#124](https://github.com/pykalman/pykalman/pull/124)) [@KOLANICH](https://github.com/KOLANICH), [@fkiraly](https://github.com/fkiraly)
+- [MNT] Move the metadata into PEP-621-compliant pyproject.toml ([#124](https://github.com/pykalman/pykalman/pull/124)) [@KOLANICH](https://github.com/KOLANICH)
 - [MNT] python 3.11 compatibility - replace deprecated inspect.getargspec ([#107](https://github.com/pykalman/pykalman/pull/107)), ([#101](https://github.com/pykalman/pykalman/pull/101)), ([#63](https://github.com/pykalman/pykalman/pull/63)) [@doberbauer](https://github.com/doberbauer), [@erkinsahin](https://github.com/erkinsahin), [@jonathanng](https://github.com/jonathanng)
 - [MNT] add all-contributors file ([#123](https://github.com/pykalman/pykalman/pull/123)) [@fkiraly](https://github.com/fkiraly)
 - [MNT] Added pre-commit Hooks for code-quality checks ([#117](https://github.com/pykalman/pykalman/pull/117)) [@phoeenniixx](https://github.com/phoeenniixx)
