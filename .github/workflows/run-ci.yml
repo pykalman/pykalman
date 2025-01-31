@@ -24,8 +24,27 @@ jobs:
         run: build_tools/fail_on_missing_init_files.sh
         shell: bash
 
+  test-nodevdeps:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.11
+      - name: Display Python version
+        run: python -c "import sys; print(sys.version)"
+
+      - name: Install pykalman and dependencies
+        run: |
+          python -m pip install .
+
+      - name: Run pytest-free tests
+        run: |
+          python pykalman/_nopytest_tests.py
+
   build:
-    needs: code-quality
+    needs: test-nodevdeps
     name: build
     strategy:
       matrix:
