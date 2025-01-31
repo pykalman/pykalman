@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [v0.10.1] - 2025-01-31
+
+Hotfix for missing dependency `packaging` in `pyproject.toml`, required for `numpy 2` fix added in v0.10.0.
+
+
 ## [v0.10.0] - 2025-01-31
 
 Major maintenance update:
@@ -11,7 +17,7 @@ Major maintenance update:
 * merge of three major forks: `pykalman` package, `pykalman-bardo`, `sktime.pykalman`
 * compatibility with `numpy 2`
 * support and testing for windows, macOS and linux
-* testing for python 3.8-3.13
+* testing for python 3.9-3.13
 
 ### Maintenance
 
