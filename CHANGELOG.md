@@ -1,13 +1,21 @@
 # Changelog
-All notable changes to this project will be documented in this file.
+All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [v0.10.0] - 2025-01-31
 
+Major maintenance update:
+
+* merge of three major forks: `pykalman` package, `pykalman-bardo`, `sktime.pykalman`
+* compatibility with `numpy 2`
+* support and testing for windows, macOS and linux
+* testing for python 3.8-3.13
+
 ### Maintenance
 
+- [MNT] merge of `sktime` fork into `pykalman` - `numpy 2` compatibility, documentation, test refactor ([#120](https://github.com/pykalman/pykalman/pull/120)) [@fkiraly](https://github.com/fkiraly)
 - [MNT] Clean-up of `pyproject.toml` ([#130](https://github.com/pykalman/pykalman/pull/130)) [@phoeenniixx](https://github.com/phoeenniixx)
 - [MNT] CI element for programmatic check of missing `__init__` files ([#131](https://github.com/pykalman/pykalman/pull/131)) [@phoeenniixx](https://github.com/phoeenniixx)
 - [MNT] fix `pykalman` logo in `README.md` ([#134](https://github.com/pykalman/pykalman/pull/134)) [@fkiraly](https://github.com/fkiraly)
@@ -26,21 +34,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [DOC] Fix notation wrt observation offsets ([#70](https://github.com/pykalman/pykalman/pull/70)) [@dslaw](https://github.com/dslaw)
 - [DOC] fix simple typo, probabily -> probably ([#96](https://github.com/pykalman/pykalman/pull/96)) [@timgates42](https://github.com/timgates42)
 
-### Enhancements
+### Fixes
 
-- [ENH] Fixed variable and argument names `_em_observation_covariance` ([#69](https://github.com/pykalman/pykalman/pull/69)) [@oseiskar](https://github.com/oseiskar)
-- [ENH] merge of `sktime` fork into `pykalman` - `numpy 2` compatibility, documentation, test refactor ([#120](https://github.com/pykalman/pykalman/pull/120)) [@fkiraly](https://github.com/fkiraly)
+- [BUG] Fixed variable and argument names `_em_observation_covariance` ([#69](https://github.com/pykalman/pykalman/pull/69)) [@oseiskar](https://github.com/oseiskar)
 
 ### Contributors
 [@doberbauer](https://github.com/doberbauer), [@dslaw](https://github.com/dslaw), [@erkinsahin](https://github.com/erkinsahin), [@fkiraly](https://github.com/fkiraly), [@jonathanng](https://github.com/jonathanng), [@KOLANICH](https://github.com/KOLANICH), [@oseiskar](https://github.com/oseiskar), [@phoeenniixx](https://github.com/phoeenniixx), [@timgates42](https://github.com/timgates42)
 
-## [v0.9.7] - 2023-09-19
+
+## [v0.9.7] - 2024-03-25
 ### Fixed
 - `Masked array are not supported` in `linalg.solve` fixed by migration to `numpy.linalg.solve`
 - Python 3.11 compatibility issue `inspect.getargspec` -> `inspect.getfullargspec` resolved
 
 ### Changed
 - Migrated from `setuptools` format to `pyproject.toml`
-
-[Unreleased]: https://github.com/pykalman/pykalman/compare/v0.9.7...HEAD
-[v0.9.7]: https://github.com/pykalman/pykalman/compare/92810c9e3005dde7d9fe063607e4c96861d087d4...v0.9.7
