@@ -73,7 +73,7 @@ all = [
 [project.urls]
 Homepage = "https://github.com/pykalman/pykalman"
 Repository = "https://github.com/pykalman/pykalman"
-Documentation = "https://pykalman.github.io/"
+Documentation = "https://pykalman.readthedocs.io/en/latest/"
 Download = "https://pypi.org/project/pykalman/"
 
 [project.license]
