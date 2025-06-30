@@ -42,6 +42,7 @@ dependencies = [
     "packaging",
     "scikit-base<0.13.0",
     "scipy<2.0.0",
+    "matplotlib",
 ]
 
 [project.optional-dependencies]
