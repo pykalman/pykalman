@@ -120,9 +120,9 @@ jobs:
   
         - name: Execute notebooks
           run: |
-            NOTEBOOKS=$(find examples/standard/notebooks -name "*.ipynb")
+            NOTEBOOKS=$(find doc/source -name "*.ipynb")
             if [ -z "$NOTEBOOKS" ]; then
-              echo "No notebooks found in examples/standard/notebooks/ folder."
+              echo "No notebooks found in doc/source/ folder."
               exit 0
             fi
             for notebook in $NOTEBOOKS; do
