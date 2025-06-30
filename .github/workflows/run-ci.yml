@@ -116,7 +116,7 @@ jobs:
         - name: Install Jupyter dependencies
           run: |
             python -m pip install --upgrade pip
-            pip install nbconvert nbformat ipykernel
+            python -m pip install ".[dev,all]"
   
         - name: Execute notebooks
           run: |
