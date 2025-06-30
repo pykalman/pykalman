@@ -36,6 +36,7 @@ extensions = [
     "sphinx.ext.todo",
     "sphinx.ext.imgmath",
     "numpydoc",
+    "myst_nb",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
