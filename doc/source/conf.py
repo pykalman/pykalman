@@ -36,7 +36,11 @@ extensions = [
     "sphinx.ext.todo",
     "sphinx.ext.imgmath",
     "numpydoc",
+    "myst_nb",
 ]
+
+# Don't execute the notebook
+jupyter_execute_notebooks = "off"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
