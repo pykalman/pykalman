@@ -99,11 +99,7 @@ Example Notebooks
 
 Following section contains various examples of using pykalman in notebooks.
 
-EM for Linear-Gaussian Models
-=============================
-
 .. toctree::
    :maxdepth: 1
-   :caption: Contents:
 
    plot_em
