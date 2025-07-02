@@ -34,9 +34,9 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.todo",
-    "sphinx.ext.imgmath",
     "numpydoc",
-    "myst_nb",
+    "nbsphinx",
+    "sphinx.ext.mathjax",
 ]
 
 # Don't execute the notebook
