@@ -101,31 +101,31 @@ jobs:
         run: pytest pykalman/tests/
         shell: bash
 
-    test-notebooks:
-        name: Test Jupyter Notebooks
-        runs-on: ubuntu-latest
-        steps:
-          - name: Checkout repository
-            uses: actions/checkout@v4
-    
-          - name: Set up Python
-            uses: actions/setup-python@v5
-            with:
-              python-version: '3.11'
-    
-          - name: Install Jupyter dependencies
-            run: |
-              python -m pip install --upgrade pip
-              python -m pip install ".[dev,docs]"
-    
-          - name: Execute notebooks
-            run: |
-              NOTEBOOKS=$(find doc/source -name "*.ipynb")
-              if [ -z "$NOTEBOOKS" ]; then
-                echo "No notebooks found in doc/source/ folder."
-                exit 0
-              fi
-              for notebook in $NOTEBOOKS; do
-                echo "Executing $notebook"
-                jupyter nbconvert --to notebook --execute "$notebook" --output executed.ipynb
-              done
+  test-notebooks:
+      name: Test Jupyter Notebooks
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout repository
+          uses: actions/checkout@v4
+  
+        - name: Set up Python
+          uses: actions/setup-python@v5
+          with:
+            python-version: '3.11'
+  
+        - name: Install Jupyter dependencies
+          run: |
+            python -m pip install --upgrade pip
+            python -m pip install ".[dev,docs]"
+  
+        - name: Execute notebooks
+          run: |
+            NOTEBOOKS=$(find doc/source -name "*.ipynb")
+            if [ -z "$NOTEBOOKS" ]; then
+              echo "No notebooks found in doc/source/ folder."
+              exit 0
+            fi
+            for notebook in $NOTEBOOKS; do
+              echo "Executing $notebook"
+              jupyter nbconvert --to notebook --execute "$notebook" --output executed.ipynb
+            done
