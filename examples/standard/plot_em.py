@@ -1,4 +1,4 @@
-'''
+"""
 =============================
 EM for Linear-Gaussian Models
 =============================
@@ -32,7 +32,8 @@ the EM algorithm.
 
 The second figure contains a single line representing the likelihood of the
 observed data as a function of the EM Algorithm iteration.
-'''
+"""
+
 import numpy as np
 import pylab as pl
 
@@ -51,11 +52,14 @@ kf = KalmanFilter(
     data.initial_state_mean,
     data.initial_state_covariance,
     em_vars=[
-      'transition_matrices', 'observation_matrices',
-      'transition_covariance', 'observation_covariance',
-      'observation_offsets', 'initial_state_mean',
-      'initial_state_covariance'
-    ]
+        "transition_matrices",
+        "observation_matrices",
+        "transition_covariance",
+        "observation_covariance",
+        "observation_offsets",
+        "initial_state_mean",
+        "initial_state_covariance",
+    ],
 )
 
 # Learn good values for parameters named in `em_vars` using the EM algorithm
@@ -73,8 +77,8 @@ for t in range(n_timesteps - 1):
     if t == 0:
         blind_state_estimates[t] = kf.initial_state_mean
     blind_state_estimates[t + 1] = (
-      np.dot(kf.transition_matrices, blind_state_estimates[t])
-      + kf.transition_offsets[t]
+        np.dot(kf.transition_matrices, blind_state_estimates[t])
+        + kf.transition_offsets[t]
     )
 
 # Estimate the hidden states using observations up to and including
@@ -94,22 +98,22 @@ smoothed_state_estimates = kf.smooth(data.observations)[0]
 # Draw the true, blind,e filtered, and smoothed state estimates for all 5
 # dimensions.
 pl.figure(figsize=(16, 6))
-lines_true = pl.plot(data.states, linestyle='-', color='b')
-lines_blind = pl.plot(blind_state_estimates, linestyle=':', color='m')
-lines_filt = pl.plot(filtered_state_estimates, linestyle='--', color='g')
-lines_smooth = pl.plot(smoothed_state_estimates, linestyle='-.', color='r')
+lines_true = pl.plot(data.states, linestyle="-", color="b")
+lines_blind = pl.plot(blind_state_estimates, linestyle=":", color="m")
+lines_filt = pl.plot(filtered_state_estimates, linestyle="--", color="g")
+lines_smooth = pl.plot(smoothed_state_estimates, linestyle="-.", color="r")
 pl.legend(
     (lines_true[0], lines_blind[0], lines_filt[0], lines_smooth[0]),
-    ('true', 'blind', 'filtered', 'smoothed')
+    ("true", "blind", "filtered", "smoothed"),
 )
-pl.xlabel('time')
-pl.ylabel('state')
+pl.xlabel("time")
+pl.ylabel("state")
 pl.xlim(xmax=500)
 
 # Draw log likelihood of observations as a function of EM iteration number.
 # Notice how it is increasing (this is guaranteed by the EM algorithm)
 pl.figure()
 pl.plot(loglikelihoods)
-pl.xlabel('em iteration number')
-pl.ylabel('log likelihood')
+pl.xlabel("em iteration number")
+pl.ylabel("log likelihood")
 pl.show()

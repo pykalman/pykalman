@@ -1,4 +1,4 @@
-'''
+"""
 ==============================================
 Online State Estimation with the Kalman Filter
 ==============================================
@@ -16,7 +16,8 @@ apply the Kalman Filter in an online manner.
 The drawn figure shows two sets of lines; the first represents the true, hidden
 state of the target, while the second represents the estimates output by the
 Kalman Filter.
-'''
+"""
+
 import numpy as np
 import pylab as pl
 
@@ -34,7 +35,7 @@ kf = KalmanFilter(
     data.observation_offset,
     data.initial_state_mean,
     data.initial_state_covariance,
-    random_state=0
+    random_state=0,
 )
 
 # Estimate mean and covariance of hidden state distribution iteratively.  This
@@ -49,18 +50,16 @@ for t in range(n_timesteps - 1):
     if t == 0:
         filtered_state_means[t] = data.initial_state_mean
         filtered_state_covariances[t] = data.initial_state_covariance
-    filtered_state_means[t + 1], filtered_state_covariances[t + 1] = (
-        kf.filter_update(
-            filtered_state_means[t],
-            filtered_state_covariances[t],
-            data.observations[t + 1],
-            transition_offset=data.transition_offsets[t],
-        )
+    filtered_state_means[t + 1], filtered_state_covariances[t + 1] = kf.filter_update(
+        filtered_state_means[t],
+        filtered_state_covariances[t],
+        data.observations[t + 1],
+        transition_offset=data.transition_offsets[t],
     )
 
 # draw estimates
 pl.figure()
-lines_true = pl.plot(data.states, color='b')
-lines_filt = pl.plot(filtered_state_means, color='r')
-pl.legend((lines_true[0], lines_filt[0]), ('true', 'filtered'))
+lines_true = pl.plot(data.states, color="b")
+lines_filt = pl.plot(filtered_state_means, color="r")
+pl.legend((lines_true[0], lines_filt[0]), ("true", "filtered"))
 pl.show()
