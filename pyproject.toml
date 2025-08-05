@@ -58,7 +58,8 @@ dev = [
 docs = [
     "jupyter",
     "Sphinx<9.0.0",
-    "numpydoc"
+    "numpydoc",
+    "matplotlib"
 ]
 
 all = [

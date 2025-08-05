@@ -92,3 +92,14 @@ Class Reference
 ---------------
 
 .. include:: class_docs.rst
+
+-----------------
+Example Notebooks
+-----------------
+
+Following section contains various examples of using pykalman in notebooks.
+
+.. toctree::
+   :maxdepth: 1
+
+   plot_em

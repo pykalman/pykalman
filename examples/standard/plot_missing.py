@@ -1,4 +1,4 @@
-'''
+"""
 ====================================================
 Applying the Kalman Filter with Missing Observations
 ====================================================
@@ -14,7 +14,8 @@ arrays as missing measurements.
 The figure drawn illustrates the trajectory of each dimension of the true
 state, the estimated state using all measurements, and the estimated state
 using every fifth measurement.
-'''
+"""
+
 import numpy as np
 import pylab as pl
 from pykalman import KalmanFilter
@@ -35,16 +36,13 @@ kf = KalmanFilter(
     transition_offsets=transition_offset,
     observation_offsets=observation_offset,
     initial_state_mean=initial_state_mean,
-    random_state=0
+    random_state=0,
 )
-states, observations_all = kf.sample(
-    n_timesteps, initial_state=initial_state_mean
-)
+states, observations_all = kf.sample(n_timesteps, initial_state=initial_state_mean)
 
 # label half of the observations as missing
 observations_missing = np.ma.array(
-    observations_all,
-    mask=np.zeros(observations_all.shape)
+    observations_all, mask=np.zeros(observations_all.shape)
 )
 for t in range(n_timesteps):
     if t % 5 != 0:
@@ -56,12 +54,12 @@ smoothed_states_missing = kf.smooth(observations_missing)[0]
 
 # draw estimates
 pl.figure()
-lines_true = pl.plot(states, color='b')
-lines_smooth_all = pl.plot(smoothed_states_all, color='r')
-lines_smooth_missing = pl.plot(smoothed_states_missing, color='g')
+lines_true = pl.plot(states, color="b")
+lines_smooth_all = pl.plot(smoothed_states_all, color="r")
+lines_smooth_missing = pl.plot(smoothed_states_missing, color="g")
 pl.legend(
     (lines_true[0], lines_smooth_all[0], lines_smooth_missing[0]),
-    ('true', 'all', 'missing'),
-    loc='lower right'
+    ("true", "all", "missing"),
+    loc="lower right",
 )
 pl.show()
