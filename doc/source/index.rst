@@ -105,3 +105,4 @@ Following section contains various examples of using pykalman in notebooks.
    plot_em
    plot_filter
    plot_missing
+   plot_online
