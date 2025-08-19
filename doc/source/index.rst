@@ -107,3 +107,4 @@ Following section contains various examples of using pykalman in notebooks.
    plot_missing
    plot_online
    sine_wave
+   unscented_kalman_filter
