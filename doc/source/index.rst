@@ -103,3 +103,4 @@ Following section contains various examples of using pykalman in notebooks.
    :maxdepth: 1
 
    plot_em
+   plot_filter
