@@ -108,3 +108,4 @@ Following section contains various examples of using pykalman in notebooks.
    plot_online
    sine_wave
    unscented_kalman_filter
+   unscented_kalman_filter_and_smoother
