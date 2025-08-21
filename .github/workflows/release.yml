@@ -39,6 +39,9 @@ jobs:
     permissions:
       id-token: write
 
+    needs:
+      - check_tag
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v5
