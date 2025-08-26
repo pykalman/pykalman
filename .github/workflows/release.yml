@@ -79,7 +79,6 @@ jobs:
         run: pytest pykalman/tests/
         shell: bash
 
-jobs:
   upload:
     runs-on: ubuntu-latest
   
