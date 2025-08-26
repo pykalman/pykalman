@@ -382,18 +382,18 @@ def _filter(
             predicted_state_covariances[t] = initial_state_covariance
         else:
             transition_matrix = _last_dims(transition_matrices, t - 1)
-            transition_covariance = _last_dims(transition_covariance, t - 1)
+            transition_covariance_t = _last_dims(transition_covariance, t - 1)
             transition_offset = _last_dims(transition_offsets, t - 1, ndims=1)
             predicted_state_means[t], predicted_state_covariances[t] = _filter_predict(
                 transition_matrix,
-                transition_covariance,
+                transition_covariance_t,
                 transition_offset,
                 filtered_state_means[t - 1],
                 filtered_state_covariances[t - 1],
             )
 
         observation_matrix = _last_dims(observation_matrices, t)
-        observation_covariance = _last_dims(observation_covariance, t)
+        observation_covariance_t = _last_dims(observation_covariance, t)
         observation_offset = _last_dims(observation_offsets, t, ndims=1)
         (
             kalman_gains[t],
@@ -401,7 +401,7 @@ def _filter(
             filtered_state_covariances[t],
         ) = _filter_correct(
             observation_matrix,
-            observation_covariance,
+            observation_covariance_t,
             observation_offset,
             predicted_state_means[t],
             predicted_state_covariances[t],
