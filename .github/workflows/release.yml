@@ -51,7 +51,7 @@ jobs:
           path: wheelhouse
 
       - name: Get wheel filename
-        run: echo "WHEELNAME=$(ls ./wheelhouse/skpro-*none-any.whl)" >> $GITHUB_ENV
+        run: echo "WHEELNAME=$(ls ./wheelhouse/pykalman-*none-any.whl)" >> $GITHUB_ENV
 
       - name: Install wheel and extras
         run: python -m pip install "${{ env.WHEELNAME }}[tests]"
@@ -82,7 +82,7 @@ jobs:
           path: wheelhouse
 
       - name: Get wheel filename
-        run: echo "WHEELNAME=$(ls ./wheelhouse/skpro-*none-any.whl)" >> $env:GITHUB_ENV
+        run: echo "WHEELNAME=$(ls ./wheelhouse/pykalman-*none-any.whl)" >> $env:GITHUB_ENV
 
       - name: Install wheel and extras
         run: python -m pip install "${{ env.WHEELNAME }}[tests]"
