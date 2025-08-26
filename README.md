@@ -2,9 +2,11 @@
 
 <a href="https://github.com/pykalman/pykalman"><img src="https://github.com/pykalman/pykalman/blob/main/doc/source/images/pykalman-logo-with-name.png" width="175" align="right" /></a>
 
-**the dead-simple Kalman Filter, Kalman Smoother, and EM library for Python.**
+**The dead-simple Kalman Filter, Kalman Smoother, and EM library for Python.**
 
 `pykalman` is a Python library for Kalman filtering and smoothing, providing efficient algorithms for state estimation in time series. It includes tools for linear dynamical systems, parameter estimation, and sequential data modeling. The library supports the Kalman Filter, Unscented Kalman Filter, and EM algorithm for parameter learning.
+
+Originally created by Daniel Duckworth (@duckworthd).
 
 :rocket: **Version 0.10.2 out now!** [Check out the release notes here](https://github.com/pykalman/pykalman/blob/main/CHANGELOG.md).
 
