@@ -5,6 +5,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.10.2] - 2025-08-26
+
+Maintenance, bugfix, and documentation update:
+
+* migration of examples to jupyter notebooks, by @PythonHacker24
+* fix time-varying transition covariance being overwritten by initial matrix in standard Kalman filter by @knightnemo
+* package and release maintenance
+
+### Enhancements and Fixes
+
+* [ENH] refactor `utils` module by @fkiraly in https://github.com/pykalman/pykalman/pull/147
+* [BUG] fix time-varying transition covariance being overwritten by initial matrix in standard Kalman filter by @knightnemo in https://github.com/pykalman/pykalman/pull/166
+
+### Documentation
+
+* [DOC] Migrated all Examples to Notebooks in Documentation by @PythonHacker24 in https://github.com/pykalman/pykalman/pull/167
+* [DOC] Migrating Examples to Notebooks: plot_em.ipynb EM estimation of model parameters with a Kalman Filter by @PythonHacker24 in https://github.com/pykalman/pykalman/pull/164
+
+### Maintenance
+
+* [MNT] readthedocs hosting for documentation by @fkiraly in https://github.com/pykalman/pykalman/pull/151
+* [MNT] update deprecated `sphinx` extensions, sphinx metadata by @fkiraly in https://github.com/pykalman/pykalman/pull/153
+* [MNT] enable dependabot by @fkiraly in https://github.com/pykalman/pykalman/pull/152
+* [MNT] update documentation links to readthedocs by @fkiraly in https://github.com/pykalman/pykalman/pull/154
+* [MNT] remove `tj-actions` by @fkiraly in https://github.com/pykalman/pykalman/pull/157
+* [MNT] move release to trusted publishers by @fkiraly in https://github.com/pykalman/pykalman/pull/156
+* [MNT] [Dependabot](deps): Bump actions/checkout from 4 to 5 by @dependabot[bot] in https://github.com/pykalman/pykalman/pull/165
+* [MNT] Check versions in wheels workflow by @szepeviktor in https://github.com/pykalman/pykalman/pull/168
+
+
 ## [v0.10.1] - 2025-01-31
 
 Hotfix for missing dependency `packaging` in `pyproject.toml`, required for `numpy 2` fix added in v0.10.0.
