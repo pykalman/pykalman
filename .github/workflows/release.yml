@@ -1,10 +1,8 @@
-name: Release
+name: PyPI Release
 
 on:
-  push:
-    # Release when a tag is pushed (should work with GitHub "release" button also)
-    tags:
-      - "v[0-9]+.[0-9]+.[0-9]+*"
+  release:
+    types: [published]
 
 jobs:
   build_wheels:
