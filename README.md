@@ -8,7 +8,7 @@
 
 Originally created by Daniel Duckworth (@duckworthd).
 
-:rocket: **Version 0.10.2 out now!** [Check out the release notes here](https://github.com/pykalman/pykalman/blob/main/CHANGELOG.md).
+:rocket: **Version 0.11.0 out now!** [Check out the release notes here](https://github.com/pykalman/pykalman/blob/main/CHANGELOG.md).
 
 |  | **[Documentation](https://pykalman.readthedocs.io/en/latest/)** · **[Tutorials](https://github.com/pykalman/pykalman/tree/main/examples)** |
 |---|---|
