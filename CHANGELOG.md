@@ -5,6 +5,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.11.0] - 2025-11-28
+
+Maintenance update:
+
+* python 3.14 support
+* deprecation of python 3.9 after EOL
+* package and release maintenance
+
+### Documentation
+
+* [DOC] README - credit to duckworthd by @fkiraly in https://github.com/pykalman/pykalman/pull/176
+
+### Maintenance
+
+* &szepeviktor [MNT] change trigger of `release` workflow to "on release" by @fkiraly in https://github.com/pykalman/pykalman/pull/177
+* [MNT] Check versions in wheels workflow by @fkiraly in https://github.com/pykalman/pykalman/pull/171
+* [MNT] [Dependabot](deps): Bump actions/setup-python from 5 to 6 by @dependabot[bot] in https://github.com/pykalman/pykalman/pull/179
+* [MNT] [Dependabot](deps): Bump actions/upload-artifact from 4 to 5 by @dependabot[bot] in https://github.com/pykalman/pykalman/pull/182
+* [MNT] [Dependabot](deps): Bump actions/download-artifact from 5 to 6 by @dependabot[bot] in https://github.com/pykalman/pykalman/pull/181
+* [MNT] [Dependabot](deps): Bump actions/checkout from 5 to 6 by @dependabot[bot] in https://github.com/pykalman/pykalman/pull/183
+* [MNT] python 3.14 support and python 3.9 EOL by @fkiraly in https://github.com/pykalman/pykalman/pull/184
+
+
 ## [v0.10.2] - 2025-08-26
 
 Maintenance, bugfix, and documentation update:
