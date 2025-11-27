@@ -19,7 +19,7 @@ Maintenance update:
 
 ### Maintenance
 
-* &szepeviktor [MNT] change trigger of `release` workflow to "on release" by @fkiraly in https://github.com/pykalman/pykalman/pull/177
+* [MNT] change trigger of `release` workflow to "on release" by @fkiraly, @szepeviktor in https://github.com/pykalman/pykalman/pull/177
 * [MNT] Check versions in wheels workflow by @fkiraly in https://github.com/pykalman/pykalman/pull/171
 * [MNT] [Dependabot](deps): Bump actions/setup-python from 5 to 6 by @dependabot[bot] in https://github.com/pykalman/pykalman/pull/179
 * [MNT] [Dependabot](deps): Bump actions/upload-artifact from 4 to 5 by @dependabot[bot] in https://github.com/pykalman/pykalman/pull/182
