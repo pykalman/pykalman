@@ -31,7 +31,7 @@ Questions and feedback are extremely welcome! We strongly believe in the value o
 | :factory: **Contribution & Development** | `dev-chat` channel · [Discord] |
 | :globe_with_meridians: **Meet-ups and collaboration sessions** | [Discord] - Fridays 13 UTC, dev/meet-ups channel |
 
-[github issue tracker]: https://github.com/pyklaman/pykalman/issues
+[github issue tracker]: https://github.com/pykalman/pykalman/issues
 [stack overflow]: https://stackoverflow.com/questions/tagged/pykalman
 [discord]: https://discord.com/invite/54ACzaFsn7
 
