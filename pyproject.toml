@@ -71,6 +71,10 @@ all = [
     "pre-commit"
 ]
 
+numpy1 = [
+    "numpy<2"
+]
+
 [project.urls]
 Homepage = "https://github.com/pykalman/pykalman"
 Repository = "https://github.com/pykalman/pykalman"
