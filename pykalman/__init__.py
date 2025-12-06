@@ -3,7 +3,7 @@
 Inference methods for state-space estimation in continuous spaces.
 """
 
-__version__ = "0.10.0"
+__version__ = "0.11.0"
 
 from .standard import KalmanFilter
 from .unscented import AdditiveUnscentedKalmanFilter, UnscentedKalmanFilter

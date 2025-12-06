@@ -2,13 +2,15 @@
 
 <a href="https://github.com/pykalman/pykalman"><img src="https://github.com/pykalman/pykalman/blob/main/doc/source/images/pykalman-logo-with-name.png" width="175" align="right" /></a>
 
-**the dead-simple Kalman Filter, Kalman Smoother, and EM library for Python.**
+**The dead-simple Kalman Filter, Kalman Smoother, and EM library for Python.**
 
 `pykalman` is a Python library for Kalman filtering and smoothing, providing efficient algorithms for state estimation in time series. It includes tools for linear dynamical systems, parameter estimation, and sequential data modeling. The library supports the Kalman Filter, Unscented Kalman Filter, and EM algorithm for parameter learning.
 
-:rocket: **Version 0.10.0 out now!** [Check out the release notes here](https://github.com/pykalman/pykalman/blob/main/CHANGELOG.md).
+Originally created by Daniel Duckworth (@duckworthd).
 
-|  | **[Documentation](https://pykalman.github.io/)** · **[Tutorials](https://github.com/pykalman/pykalman/tree/main/examples)** |
+:rocket: **Version 0.11.0 out now!** [Check out the release notes here](https://github.com/pykalman/pykalman/blob/main/CHANGELOG.md).
+
+|  | **[Documentation](https://pykalman.readthedocs.io/en/latest/)** · **[Tutorials](https://github.com/pykalman/pykalman/tree/main/examples)** |
 |---|---|
 | **Open&#160;Source** | [![BSD 3-clause](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://github.com/pykalman/pykalman/blob/main/LICENSE) |
 | **Community** | [![!discord](https://img.shields.io/static/v1?logo=discord&label=discord&message=chat&color=lightgreen)](https://discord.com/invite/54ACzaFsn7) [![!LinkedI](https://img.shields.io/static/v1?logo=linkedin&label=LinkedIn&message=news&color=lightblue)](https://www.linkedin.com/company/scikit-time/) |
@@ -29,7 +31,7 @@ Questions and feedback are extremely welcome! We strongly believe in the value o
 | :factory: **Contribution & Development** | `dev-chat` channel · [Discord] |
 | :globe_with_meridians: **Meet-ups and collaboration sessions** | [Discord] - Fridays 13 UTC, dev/meet-ups channel |
 
-[github issue tracker]: https://github.com/pyklaman/pykalman/issues
+[github issue tracker]: https://github.com/pykalman/pykalman/issues
 [stack overflow]: https://stackoverflow.com/questions/tagged/pykalman
 [discord]: https://discord.com/invite/54ACzaFsn7
 
@@ -37,7 +39,7 @@ Questions and feedback are extremely welcome! We strongly believe in the value o
 ## :hourglass_flowing_sand: Install pykalman
 
 - **Operating system**: macOS X · Linux · Windows 8.1 or higher
-- **Python version**: Python 3.9, 3.10, 3.11, 3.12, and 3.13
+- **Python version**: Python 3.10, 3.11, 3.12, 3.13, and 3.14
 - **Package managers**: [pip](https://pip.pypa.io/en/stable/)
 
 For a quick installation::

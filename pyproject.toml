@@ -1,6 +1,6 @@
 [project]
 name = "pykalman"
-version = "0.10.0"
+version = "0.11.0"
 description = "An implementation of the Kalman Filter, Kalman Smoother, and EM algorithm in Python"
 maintainers = [
     {name = "pykalman developers", email = "info@sktime.net"}
@@ -29,18 +29,18 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering :: Artificial Intelligence"
 ]
-requires-python = ">=3.9,<3.14"
+requires-python = ">=3.10,<3.15"
 dependencies = [
     "numpy<3",
     "packaging",
-    "scikit-base<0.13.0",
+    "scikit-base<0.14.0",
     "scipy<2.0.0",
 ]
 
@@ -58,7 +58,8 @@ dev = [
 docs = [
     "jupyter",
     "Sphinx<9.0.0",
-    "numpydoc"
+    "numpydoc",
+    "matplotlib"
 ]
 
 all = [
@@ -77,7 +78,7 @@ numpy1 = [
 [project.urls]
 Homepage = "https://github.com/pykalman/pykalman"
 Repository = "https://github.com/pykalman/pykalman"
-Documentation = "https://pykalman.github.io/"
+Documentation = "https://pykalman.readthedocs.io/en/latest/"
 Download = "https://pypi.org/project/pykalman/"
 
 [project.license]
