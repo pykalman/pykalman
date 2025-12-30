@@ -101,6 +101,36 @@ jobs:
         run: pytest pykalman/tests/
         shell: bash
 
+  build-numpy1:
+    needs: code-quality
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+        operating-system:
+          - macos-13
+          - ubuntu-latest
+          - windows-latest
+    runs-on: ${{ matrix.operating-system }}
+    steps:
+      - name: checkout pull request branch
+        uses: actions/checkout@v4
+      - name: Set Up Python Environment
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install Dependencies
+        run: pip install .[tests,numpy1]
+        shell: bash
+      - name: Display Python Version
+        run: python -c "import sys; print(sys.version)"
+        shell: bash
+      - name: Show Available Branches
+        run: git branch -a
+        shell: bash
+      - name: Run Unit Tests
+        run: pytest pykalman/tests/
+        shell: bash
+
   test-notebooks:
       name: Test Jupyter Notebooks
       runs-on: ubuntu-latest
