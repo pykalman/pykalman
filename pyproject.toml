@@ -3,12 +3,12 @@ name = "pykalman"
 version = "0.11.1"
 description = "An implementation of the Kalman Filter, Kalman Smoother, and EM algorithm in Python"
 maintainers = [
-    {name = "pykalman developers", email = "info@sktime.net"}
+    {name = "pykalman developers", email = "info@gcos.ai"}
 ]
 authors = [
     {name = "Daniel Duckworth"},
     {name = "Maksym Balatsko", email = "mbalatsko@gmail.com"},
-    {name = "pykalman developers", email = "info@sktime.net"}
+    {name = "pykalman developers", email = "info@gcos.ai"}
 ]
 readme = "README.md"
 keywords = [
