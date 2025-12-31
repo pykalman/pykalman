@@ -115,7 +115,7 @@ jobs:
       - name: checkout pull request branch
         uses: actions/checkout@v6
       - name: Set Up Python Environment
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install Dependencies
