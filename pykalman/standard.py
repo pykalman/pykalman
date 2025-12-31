@@ -180,7 +180,7 @@ def _loglikelihoods(
                 predicted_observation_mean[np.newaxis, :],
                 predicted_observation_covariance[np.newaxis, :, :],
             )
-            loglikelihoods[t] = lmnd_arr[0]
+            loglikelihoods[t] = lmnd_arr[0, 0]
     return loglikelihoods
 
 
