@@ -52,19 +52,19 @@ conda-forge and any mirrors, forks, or derivative services thereof
 
 Only the entities distributing the software through the channels listed in Section 2 are responsible for compliance with Section 2, including payment of fees. End users who download or use the software from these channels shall have no obligation or liability under this license.
 
-2.2 Explicit Exemption of End Users from Section 2
+2.3 Explicit Exemption of End Users from Section 2
 
-Only the entities distributing the software through the channels listed in Section 2.1 are responsible for compliance with Section 2, including payment of fees. End users who download or use the software from these channels, or any other channels, shall have no obligation or liability under Section 2 of this license.
+For the avoidance of doubt, only the entities distributing the software through the channels listed in Section 2.1 are responsible for compliance with Section 2, including payment of fees. End users who download or use the software from these channels, or any other channels, shall have no obligation or liability under Section 2 of this license.
 
-2.3 Explicit Exemption of PyPI from Section 2
+2.4 Explicit Exemption of PyPI from Section 2
 
 For the avoidance of doubt, distribution of this software via the Python Package Index (PyPI), including pypi.org and its mirrors, is not subject to Section 2.1, does not require a separate commercial distribution license, and remains fully governed by Sections 1 of this license (New BSD).
 
-2.4 Separate Distribution License Required
+2.5 Separate Distribution License Required
 
 Distribution through the channels listed above requires a separately executed commercial distribution license granted by the copyright holder.
 
-2.5 Fee Structure
+2.6 Fee Structure
 
 Such a license shall include, at minimum:
 
@@ -74,15 +74,15 @@ A per-download fee of USD $0.01 per end-user download obtained through the above
 
 Fees shall be reported and remitted on a mutually agreed reporting schedule.
 
-2.6 No Implied Rights
+2.7 No Implied Rights
 
 No rights to distribute via the channels listed in this Section are granted by this license absent a separately executed written agreement.
 
-2.7 Prohibited Distribution Without License
+2.8 Prohibited Distribution Without License
 
 Any distribution of this software through the channels listed in Paragraph 2.1 without a valid commercial distribution license constitutes unauthorized use and is expressly prohibited.
 
-2.8 Effect of Unauthorized Distribution
+2.9 Effect of Unauthorized Distribution
 
 In the event of unauthorized distribution:
 
@@ -100,6 +100,6 @@ Statutory or actual damages,
 
 Termination of any rights otherwise granted under this license.
 
-2.9 Cure and Compliance
+2.10 Cure and Compliance
 
 The copyright holder may, at its sole discretion, offer the distributing party an opportunity to cure unauthorized distribution by entering into a commercial distribution license retroactively. Nothing in this section shall be construed as a waiver of rights.
