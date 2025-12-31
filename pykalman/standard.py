@@ -175,11 +175,12 @@ def _loglikelihoods(
                 )
                 + observation_covariance
             )
-            loglikelihoods[t] = log_multivariate_normal_density(
+            lmnd_arr = log_multivariate_normal_density(
                 observation[np.newaxis, :],
                 predicted_observation_mean[np.newaxis, :],
                 predicted_observation_covariance[np.newaxis, :, :],
             )
+            loglikelihoods[t] = lmnd_arr[0, 0]
     return loglikelihoods
 
 
