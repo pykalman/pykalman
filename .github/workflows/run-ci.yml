@@ -113,7 +113,7 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     steps:
       - name: checkout pull request branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Set Up Python Environment
         uses: actions/setup-python@v5
         with:
