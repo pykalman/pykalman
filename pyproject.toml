@@ -72,7 +72,7 @@ all = [
 ]
 
 numpy1 = [
-    "numpy<2"
+    "numpy<3"
 ]
 
 [project.urls]
