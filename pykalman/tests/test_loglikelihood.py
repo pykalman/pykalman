@@ -19,7 +19,7 @@ def test_custom_parameter_inference():
             observation_offsets=0.1 ** 2.0
         )
 
-        return -f.loglikelihood(y_) / y_.shape[0]
+        return -f.loglikelihood(y_)
 
     np.random.seed(0)
     f = pk.KalmanFilter(
