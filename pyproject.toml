@@ -57,7 +57,7 @@ dev = [
 
 docs = [
     "jupyter",
-    "Sphinx<9.0.0",
+    "Sphinx<10.0.0",
     "numpydoc",
     "matplotlib"
 ]
@@ -65,7 +65,7 @@ docs = [
 all = [
     "jupyter",
     "pytest",
-    "Sphinx<9.0.0",
+    "Sphinx<10.0.0",
     "numpydoc",
     "twine",
     "pre-commit"
