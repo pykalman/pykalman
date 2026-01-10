@@ -870,7 +870,10 @@ def _em_transition_covariance(
             - Vt1t_A.T
         )
 
-    return (1.0 / (n_timesteps - 1)) * res
+    if n_timesteps > 1:
+        return (1.0 / (n_timesteps - 1)) * res
+    else:
+        return res
 
 
 def _em_initial_state_mean(smoothed_state_means):
