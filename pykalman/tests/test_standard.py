@@ -208,3 +208,32 @@ class TestKalmanFilter:
 
         # check that parameters came out already
         np.testing.assert_almost_equal(loglikelihood, kf.loglikelihood(X))
+
+    def test_loglikelihood_time_dependent_covariance(self):
+
+        n_timesteps = 10
+        n_dim_state = 1
+        n_dim_obs = 1
+
+        time_varying_R = np.zeros((n_timesteps, n_dim_obs, n_dim_obs))
+        for t in range(n_timesteps):
+            time_varying_R[t, :, :] = [[1.0 + 0.1 * t]]
+
+        true_values = np.linspace(0, 4, n_timesteps)
+        observations = true_values + np.random.normal(
+            0, np.sqrt(time_varying_R[:, 0, 0])
+        )
+
+        kf = KalmanFilter(
+            transition_matrices=np.array([[1]]),
+            observation_matrices=np.array([[1]]),
+            transition_covariance=np.array([[0.1]]),
+            observation_covariance=time_varying_R,
+            initial_state_mean=np.array([0.0]),
+            initial_state_covariance=np.array([[1.0]])
+        )
+
+        ll = kf.loglikelihood(observations)
+
+        assert np.isfinite(ll)
+
