@@ -151,6 +151,21 @@ class TestKalmanFilter:
         for i in range(len(loglikelihoods) - 1):
             assert (loglikelihoods[i] < loglikelihoods[i + 1]).all()
 
+    def test_em_single_timestep_no_zerodiv(self, kf_cls):
+        # test for ZeroDivisionError when n_timesteps == 1
+        kf = kf_cls(
+            [[1.0]],  
+            [[1.0]],  
+            [[0.1]],  
+            [[0.1]],  
+            [0.0],    
+            [0.0],  
+            [0.0],    
+            [[1.0]], 
+            em_vars="all",
+        )
+        kf.em(X=np.array([[1.0]]), n_iter=1)
+
     def test_kalman_initialize_parameters(self, kf_cls):
         self.check_dims(5, 1, {"transition_matrices": np.eye(5)}, kf_cls)
         self.check_dims(1, 3, {"observation_offsets": np.zeros(3)}, kf_cls)
