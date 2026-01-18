@@ -8,3 +8,6 @@ build/
 dist/
 doc/build/
 *.egg-info/
+
+# VSCode
+.vscode/
