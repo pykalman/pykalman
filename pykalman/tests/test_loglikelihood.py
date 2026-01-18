@@ -16,7 +16,7 @@ def test_custom_parameter_inference():
         f = pk.KalmanFilter(
             transition_matrices=phi,
             transition_covariance=sigma,
-            observation_offsets=0.1**2.0
+            observation_offsets=0.1**2.0,
         )
 
         return -f.loglikelihood(y_)
@@ -25,7 +25,7 @@ def test_custom_parameter_inference():
     f = pk.KalmanFilter(
         transition_matrices=0.98,
         transition_covariance=0.05**2.0,
-        observation_covariance=0.1**2.0
+        observation_covariance=0.1**2.0,
     )
 
     _, y = f.sample(500)
