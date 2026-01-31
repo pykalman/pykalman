@@ -64,9 +64,9 @@ Distribution through the channels listed above requires a separately executed co
 
 Such a license shall include, at minimum:
 
-An initial annual distribution fee of USD $10,000, granting the right to distribute the software for a period of one (1) calendar year; and
+An initial annual distribution fee of USD 10,000, granting the right to distribute the software for a period of one (1) calendar year; and
 
-A per-download fee of USD $0.01 per end-user download obtained through the above distribution channels during the licensed term.
+A per-download fee of USD 1 per end-user download obtained through the above distribution channels during the licensed term.
 
 Fees shall be reported and remitted on a mutually agreed reporting schedule.
 
@@ -99,3 +99,7 @@ Termination of any rights otherwise granted under this license.
 2.9 Cure and Compliance
 
 The copyright holder may, at its sole discretion, offer the distributing party an opportunity to cure unauthorized distribution by entering into a commercial distribution license retroactively. Nothing in this section shall be construed as a waiver of rights.
+
+2.10 Jurisdiction
+
+Any disputes arising out of or in connection with this agreement shall be governed solely by German law, with the exclusion of the UN Convention on Contracts for the International Sale of Goods (CISG). The Munich Regional Court (Landgericht München I) shall have exclusive jurisdiction in respect of any and all disputes arising out of or in connection with this agreement.
