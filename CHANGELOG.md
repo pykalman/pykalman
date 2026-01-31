@@ -4,6 +4,26 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [v0.11.2] - 2026-01-31
+
+Maintenance and bugfix update.
+
+* [MNT] [Dependabot](deps-dev): Update sphinx requirement from `<9.0.0` to `<10.0.0` by @dependabot[bot] in https://github.com/pykalman/pykalman/pull/198
+* [BUG] `KalmanFilter.em()` filter crashes when `n_timesteps=1` by @prashantpandeygit in https://github.com/pykalman/pykalman/pull/200
+* [ENH] Test/add loglikelihood test by @tingiskhan in https://github.com/pykalman/pykalman/pull/197
+
+### New Contributors
+* @prashantpandeygit made their first contribution in https://github.com/pykalman/pykalman/pull/200
+* @tingiskhan made their first contribution in https://github.com/pykalman/pykalman/pull/197
+
+### All Contributors
+
+@fkiraly,
+@prashantpandeygit,
+@tingiskhan
+
+
 ## [v0.11.1] - 2026-01-01
 
 Maintenance update:
