@@ -864,7 +864,7 @@ class UnscentedKalmanFilter(UnscentedMixin):
 
         Parameters
         ----------
-        Z : [n_timesteps, n_dim_state] array
+        Z : [n_timesteps, n_dim_obs] array
             Z[t] = observation at time t.  If Z is a masked array and any of
             Z[t]'s elements are masked, the observation is assumed missing and
             ignored.
