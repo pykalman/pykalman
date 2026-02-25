@@ -382,7 +382,7 @@ def unscented_filter_correct(
     # Calculate Cov(x_t, z_t | z_{0:t-1})
     sigma_pair = (
         ((points_pred.points - moments_pred.mean).T)
-        .dot(np.diag(points_pred.weights_mean))
+        .dot(np.diag(points_pred.weights_covariance))
         .dot(obs_points_pred.points - obs_moments_pred.mean)
     )
 
