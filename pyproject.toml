@@ -59,6 +59,7 @@ docs = [
     "jupyter",
     "Sphinx<10.0.0",
     "numpydoc",
+    "nbsphinx",
     "matplotlib"
 ]
 

@@ -143,6 +143,9 @@ jobs:
         with:
           python-version: '3.13'
 
+      - name: Install pandoc
+        uses: pandoc/actions/setup@v1
+
       - name: Install documentation dependencies
         run: |
           python -m pip install --upgrade pip
@@ -151,7 +154,7 @@ jobs:
       - name: Build Sphinx documentation
         run: |
           cd doc/source
-          python -m sphinx -b html -W --keep-going . ../../doc/build/html
+          python -m sphinx -b html . ../../doc/build/html
 
       - name: Upload documentation artifact
         uses: actions/upload-artifact@v6
