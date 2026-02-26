@@ -10,6 +10,10 @@ build:
   tools:
     python: "3.13"
 
+# Enable pull request builds for doc previews on PRs
+pull_request_builds:
+  default: true
+
 # Build documentation in the "doc/source" directory with Sphinx
 sphinx:
    configuration: doc/source/conf.py
