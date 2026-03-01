@@ -292,8 +292,14 @@ def _filter_correct(
         corrected_state_mean = predicted_state_mean + np.dot(
             kalman_gain, observation - predicted_observation_mean
         )
-        corrected_state_covariance = predicted_state_covariance - np.dot(
-            kalman_gain, np.dot(observation_matrix, predicted_state_covariance)
+        # Use the Joseph stabilized form to guarantee symmetry and
+        # positive semi-definiteness of the corrected covariance:
+        #   P = (I - K*H)*P_pred*(I - K*H)^T + K*R*K^T
+        n_dim_state = predicted_state_covariance.shape[0]
+        I_KH = np.eye(n_dim_state) - np.dot(kalman_gain, observation_matrix)
+        corrected_state_covariance = (
+            np.dot(I_KH, np.dot(predicted_state_covariance, I_KH.T))
+            + np.dot(kalman_gain, np.dot(observation_covariance, kalman_gain.T))
         )
     else:
         n_dim_state = predicted_state_covariance.shape[0]
