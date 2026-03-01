@@ -292,8 +292,13 @@ def _filter_correct(
         corrected_state_mean = predicted_state_mean + np.dot(
             kalman_gain, observation - predicted_observation_mean
         )
-        corrected_state_covariance = predicted_state_covariance - np.dot(
-            kalman_gain, np.dot(observation_matrix, predicted_state_covariance)
+        I_KH = (
+            np.eye(predicted_state_covariance.shape[0])
+            - np.dot(kalman_gain, observation_matrix)
+        )
+        corrected_state_covariance = (
+            np.dot(I_KH, np.dot(predicted_state_covariance, I_KH.T))
+            + np.dot(kalman_gain, np.dot(observation_covariance, kalman_gain.T))
         )
     else:
         n_dim_state = predicted_state_covariance.shape[0]
