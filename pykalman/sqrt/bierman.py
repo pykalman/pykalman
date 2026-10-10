@@ -703,7 +703,7 @@ class BiermanKalmanFilter(KalmanFilter):
         # reconstruct actual covariance
         next_filtered_state_covariance = _reconstruct_covariances(
             next_filtered_state_covariance
-        )
+        )[0]
 
         return (next_filtered_state_mean, next_filtered_state_covariance)
 
