@@ -764,7 +764,7 @@ class AdditiveUnscentedKalmanFilter(AUKF):
 
         next_filtered_state_covariance = _reconstruct_covariances(
             next_filtered_state_covariance2
-        )
+        )[0]
 
         return (next_filtered_state_mean, next_filtered_state_covariance)
 
