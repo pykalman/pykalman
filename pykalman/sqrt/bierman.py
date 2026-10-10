@@ -134,7 +134,10 @@ def decorrelate_observations(
     observation_covariance_inv = linalg.pinv(observation_covariance2)
 
     # decorrelate observation_matrices
-    observation_matrices2 = np.copy(observation_matrices)
+    observation_matrices2 = np.array(
+        observation_matrices,
+        dtype=np.result_type(observation_matrices, observation_covariance_inv),
+    )
     if len(observation_matrices.shape) == DIM["observation_matrices"] + 1:
         n_timesteps = observation_matrices.shape[0]
         for t in range(n_timesteps):
