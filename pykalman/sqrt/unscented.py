@@ -140,7 +140,8 @@ def points2moments(points, sigma2_noise=None):
         * (points.T - mu[:, np.newaxis])
     ]
     if sigma2_noise is not None:
-        qr_points.append(sigma2_noise)
+        # Noise factors are upper triangular: covariance = S.T @ S.
+        qr_points.append(sigma2_noise.T)
     sigma2 = qr(np.hstack(qr_points).T)
     # sigma2 = cholupdate(sigma2, points[0] - mu, weights_sigma[0])
     return Moments(mu.ravel(), sigma2)
@@ -286,14 +287,14 @@ def _unscented_correct(cross_sigma, moments_pred, obs_moments_pred, z):
         ##############################################
 
         # equivalent to this MATLAB code
-        # K = (cross_sigma / obs_sigma2_pred.T) / obs_sigma2_pred
-        K = linalg.lstsq(obs_sigma2_pred, cross_sigma.T)[0]
-        K = linalg.lstsq(obs_sigma2_pred.T, K)[0]
+        # K = (cross_sigma / obs_sigma2_pred) / obs_sigma2_pred.T
+        K = linalg.lstsq(obs_sigma2_pred.T, cross_sigma.T)[0]
+        K = linalg.lstsq(obs_sigma2_pred, K)[0]
         K = K.T
 
         # correct mu, sigma
         mu_filt = mu_pred + K.dot(z - obs_mu_pred)
-        U = K.dot(obs_sigma2_pred)
+        U = K.dot(obs_sigma2_pred.T)
         sigma2_filt = cholupdate(sigma2_pred, U.T, -1.0)
     else:
         # no corrections to be made
