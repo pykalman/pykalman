@@ -1,6 +1,7 @@
 import inspect
 
 import numpy as np
+import pytest
 from numpy import ma
 from numpy.testing import assert_array_almost_equal
 
@@ -281,3 +282,18 @@ def test_additive_initialize_parameters():
     check_dims(
         2, 1, 1, AdditiveUnscentedKalmanFilter, {"initial_state_mean": np.zeros(2)}
     )
+
+
+@pytest.mark.parametrize(
+    "ukf_cls", [UnscentedKalmanFilter, AdditiveUnscentedKalmanFilter]
+)
+def test_unscented_single_timestep_multivariate(ukf_cls):
+    ukf = ukf_cls(n_dim_obs=2, n_dim_state=2)
+    X = np.array([[1.0, 2.0]])
+    means, covs = ukf.filter(X)
+    assert means.shape == (1, 2)
+    assert covs.shape == (1, 2, 2)
+
+    s_means, s_covs = ukf.smooth(X)
+    assert s_means.shape == (1, 2)
+    assert s_covs.shape == (1, 2, 2)
