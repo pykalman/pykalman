@@ -223,3 +223,17 @@ class TestKalmanFilter:
 
         # check that parameters came out already
         np.testing.assert_almost_equal(loglikelihood, kf.loglikelihood(X))
+
+    def test_kalman_single_timestep_multivariate(self, kf_cls):
+        kf = kf_cls(n_dim_obs=3, n_dim_state=2)
+        X = np.array([[1.0, 2.0, 3.0]])
+        means, covs = kf.filter(X)
+        assert means.shape == (1, 2)
+        assert covs.shape == (1, 2, 2)
+
+        s_means, s_covs = kf.smooth(X)
+        assert s_means.shape == (1, 2)
+        assert s_covs.shape == (1, 2, 2)
+
+        ll = kf.loglikelihood(X)
+        assert np.isfinite(ll)

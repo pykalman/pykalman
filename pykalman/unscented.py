@@ -732,8 +732,9 @@ class UnscentedMixin:
 
     def _parse_observations(self, obs):
         """Safely convert observations to their expected format."""
+        ndim = ma.ndim(obs)
         obs = ma.atleast_2d(obs)
-        if obs.shape[0] == 1 and obs.shape[1] > 1:
+        if ndim <= 1 and obs.shape[0] == 1 and obs.shape[1] > 1:
             obs = obs.T
         return obs
 

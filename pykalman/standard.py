@@ -1642,7 +1642,8 @@ class KalmanFilter:
 
     def _parse_observations(self, obs):
         """Safely convert observations to their expected format."""
+        ndim = np.ma.ndim(obs)
         obs = np.ma.atleast_2d(obs)
-        if obs.shape[0] == 1 and obs.shape[1] > 1:
+        if ndim <= 1 and obs.shape[0] == 1 and obs.shape[1] > 1:
             obs = obs.T
         return obs
