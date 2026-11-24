@@ -1112,6 +1112,33 @@ class KalmanFilter:
         else:
             self._em_vars = em_vars
 
+    def initialize_stationary(self):
+        """Set the initial state distribution to the stationary distribution.
+
+        For constant transition matrix A, offset b, and noise covariance Q,
+        the stationary mean solves m = A m + b and the covariance solves
+        P = A P A.T + Q. All eigenvalues of A must have magnitude below one.
+        Call this method again if the transition parameters change.
+
+        Returns
+        -------
+        self : KalmanFilter
+            Filter with updated initial_state_mean and initial_state_covariance.
+        """
+        transition, offset, noise = self._initialize_parameters()[:3]
+        if transition.ndim != 2 or offset.ndim != 1 or noise.ndim != 2:
+            raise ValueError("Stationary initialization requires constant transitions")
+        if not np.all(np.abs(linalg.eigvals(transition)) < 1):
+            raise ValueError(
+                "Stationary initialization requires a stable transition matrix"
+            )
+
+        mean = linalg.solve(np.eye(self.n_dim_state) - transition, offset)
+        covariance = linalg.solve_discrete_lyapunov(transition, noise)
+        self.initial_state_mean = mean
+        self.initial_state_covariance = (covariance + covariance.T) / 2
+        return self
+
     def sample(self, n_timesteps, initial_state=None, random_state=None):
         r"""Sample a state sequence :math:`n_{\\text{timesteps}}` timesteps in length.
 
