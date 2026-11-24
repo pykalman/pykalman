@@ -29,6 +29,46 @@ class TestKalmanFilter:
     tests.
     """
 
+    def test_initialize_stationary(self, kf_cls):
+        transition = np.array([[0.7, 0.2], [0, -0.4]])
+        offset = np.array([1, -2])
+        noise = np.array([[1, 0.25], [0.25, 2]])
+        kf = kf_cls(
+            transition_matrices=transition,
+            transition_offsets=offset,
+            transition_covariance=noise,
+            n_dim_obs=2,
+        )
+        assert kf.initialize_stationary() is kf
+        mean, covariance = kf.initial_state_mean, kf.initial_state_covariance
+        assert_array_almost_equal(transition @ mean + offset, mean)
+        assert_array_almost_equal(
+            transition @ covariance @ transition.T + noise, covariance
+        )
+
+        # With no observations, predicting from the stationary law preserves it.
+        means, covariances = kf.filter(np.ma.masked_all((4, 2)))
+        for filtered_mean, filtered_covariance in zip(means, covariances):
+            assert_array_almost_equal(filtered_mean, mean)
+            assert_array_almost_equal(filtered_covariance, covariance)
+
+    @pytest.mark.parametrize(
+        "params",
+        [
+            {"transition_matrices": [[1.0]]},
+            {"transition_matrices": [[-1.1]]},
+            {"transition_matrices": [[[0.2]], [[0.3]]]},
+            {"transition_matrices": [[0.2]], "transition_offsets": [[0], [1]]},
+            {"transition_matrices": [[0.2]], "transition_covariance": [[[1]], [[2]]]},
+        ],
+    )
+    def test_initialize_stationary_invalid(self, params):
+        kf = KalmanFilter(**params)
+        with pytest.raises(ValueError, match="Stationary initialization"):
+            kf.initialize_stationary()
+        assert kf.initial_state_mean is None
+        assert kf.initial_state_covariance is None
+
     def test_kalman_sampling(self, kf_cls, data):
         kf = kf_cls(
             data.transition_matrix,
